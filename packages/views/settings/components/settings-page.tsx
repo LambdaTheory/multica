@@ -27,12 +27,9 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@multica/core/auth";
 import { useCurrentWorkspace } from "@multica/core/paths";
-import { useFeatureEnabled } from "@multica/core/config";
+import { useBillingEnabled, useFeatureEnabled } from "@multica/core/config";
 import { useCurrentMember } from "@multica/core/permissions";
-import {
-  BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG,
-  PLUGINS_V1_FLAG,
-} from "@multica/core/feature-flags";
+import { PLUGINS_V1_FLAG } from "@multica/core/feature-flags";
 import { resolvePublicFileUrl } from "@multica/core/workspace/avatar-url";
 import { ActorAvatar } from "@multica/ui/components/common/actor-avatar";
 import { cn } from "@multica/ui/lib/utils";
@@ -110,10 +107,7 @@ export function SettingsPage({ extraDeviceTabs = [] }: SettingsPageProps = {}) {
   const isMember = role === "member";
   const navigation = useNavigation();
   const pluginsEnabled = useFeatureEnabled(PLUGINS_V1_FLAG, false);
-  const billingEnabled = useFeatureEnabled(
-    BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG,
-    false,
-  );
+  const billingEnabled = useBillingEnabled();
   const appsAvailable = useComposioAvailable();
   const entry = (
     value: string,

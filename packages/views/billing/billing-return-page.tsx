@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useAuthStore } from "@multica/core/auth";
+import { useBillingEnabled } from "@multica/core/config";
 import { paths } from "@multica/core/paths";
 import { workspaceListOptions } from "@multica/core/workspace/queries";
 import { Button } from "@multica/ui/components/ui/button";
@@ -44,6 +45,7 @@ export function BillingReturnPage() {
   const navigation = useNavigation();
   const user = useAuthStore((s) => s.user);
   const isAuthLoading = useAuthStore((s) => s.isLoading);
+  const billingEnabled = useBillingEnabled();
 
   const workspaceIdRaw = navigation.searchParams.get("workspace_id");
   const workspaceIdParam =
@@ -58,7 +60,7 @@ export function BillingReturnPage() {
     refetch: refetchWorkspaces,
   } = useQuery({
     ...workspaceListOptions(),
-    enabled: !!user,
+    enabled: !!user && billingEnabled,
   });
 
   const match =
@@ -69,6 +71,7 @@ export function BillingReturnPage() {
   const isUnresolvable = !!workspaces && !match;
 
   useEffect(() => {
+    if (!billingEnabled) return;
     if (isAuthLoading) return;
     // Checkout can take long enough for a session to expire, so an
     // unauthenticated return is a normal case rather than an error. Carry enough
@@ -102,6 +105,7 @@ export function BillingReturnPage() {
     // back navigation would re-run this redirect.
     navigation.replace(destination);
   }, [
+    billingEnabled,
     isAuthLoading,
     isWorkspacesError,
     isWorkspacesPending,
@@ -112,6 +116,23 @@ export function BillingReturnPage() {
     workspaceIdParam,
     workspaces,
   ]);
+
+  // Billing disabled: a neutral explanation plus the way out. No payment
+  // status is claimed and no reconcile request is fired — the deployment
+  // cannot process anything, so the copy must not imply it did.
+  if (!billingEnabled) {
+    return (
+      <ReturnMessage
+        title={t(($) => $.return_page.billing_disabled_title)}
+        description={t(($) => $.return_page.billing_disabled_description)}
+        action={
+          <Button className="h-11" onClick={() => navigation.replace(paths.root())}>
+            {t(($) => $.return_page.go_to_app)}
+          </Button>
+        }
+      />
+    );
+  }
 
   // The workspace list is what turns an ID into a slug, so without it there is
   // no destination to send anyone to. Retrying beats an endless spinner.

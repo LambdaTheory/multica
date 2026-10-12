@@ -4,9 +4,9 @@
  * @multica/ui/styles/base.css
  * ============================================================================= */
 
-/* The landing route tree is intentionally always-light (hero/cli/cloud
+/* The landing route tree is intentionally always-light (hero/cli
  * sections use hardcoded dark/light palettes). Shared components rendered
- * inside (e.g. CloudWaitlistExpand on /download) use semantic tokens that
+ * inside use semantic tokens that
  * otherwise flip to dark values under the `.dark` class set by next-themes,
  * producing a palette mismatch against the hardcoded section. Re-declare
  * tokens to their light values so nested token-driven components stay in

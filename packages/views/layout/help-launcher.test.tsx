@@ -107,6 +107,17 @@ describe("HelpLauncher", () => {
     expect(link).toHaveAttribute("href", "https://multica.ai/download");
   });
 
+  // Regression: the promotional Discord entry was removed from the Help menu
+  // (and the sidebar card deleted with it). The menu must not grow the
+  // community link back — the feedback item is the last non-version entry.
+  it("does not offer a Discord entry", () => {
+    render(<HelpLauncher />);
+    expect(screen.queryByText("Discord")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /Discord/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it.each([
     ["en", "https://multica.ai/docs"],
     ["zh-Hans", "https://multica.ai/docs/zh"],

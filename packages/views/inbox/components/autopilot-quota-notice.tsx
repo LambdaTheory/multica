@@ -1,6 +1,7 @@
 "use client";
 
 import type { InboxItem } from "@multica/core/types";
+import { useBillingEnabled } from "@multica/core/config";
 import { Button } from "@multica/ui/components/ui/button";
 import { useT } from "../../i18n";
 
@@ -22,6 +23,7 @@ export function AutopilotQuotaNotice({
   onOpenRecovery: () => void;
 }) {
   const { t } = useT("inbox");
+  const billingEnabled = useBillingEnabled();
   const details = item.details ?? {};
   const resetAt = formatResetAt(details.reset_at);
 
@@ -40,9 +42,11 @@ export function AutopilotQuotaNotice({
           {body}
         </div>
       )}
-      <Button className="mt-4" size="sm" onClick={onOpenRecovery}>
-        {t(($) => $.detail.autopilot_quota_upgrade)}
-      </Button>
+      {billingEnabled && (
+        <Button className="mt-4" size="sm" onClick={onOpenRecovery}>
+          {t(($) => $.detail.autopilot_quota_upgrade)}
+        </Button>
+      )}
     </>
   );
 }

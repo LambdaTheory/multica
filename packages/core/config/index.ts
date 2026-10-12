@@ -1,5 +1,9 @@
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
+import {
+  BILLING_ENABLED_FLAG,
+  BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG,
+} from "../feature-flags/keys";
 
 interface ConfigState {
   cdnDomain: string;
@@ -115,5 +119,25 @@ export function featureFlagEnabled(
 export function useFeatureEnabled(key: string, defaultValue = false): boolean {
   return useConfigStore((state) =>
     featureFlagEnabled(state.featureFlags, key, defaultValue),
+  );
+}
+
+/**
+ * Effective workspace-billing gate: BOTH the deployment master switch
+ * (`billing_enabled`) and the subscription flag must be true. The master flag
+ * is missing on servers that predate it — absent fails closed, so clients
+ * connected to older backends keep every purchase surface hidden.
+ *
+ * Account-level surfaces (cloud top-ups) gate on the master flag alone via
+ * `useFeatureEnabled(BILLING_ENABLED_FLAG, false)`.
+ */
+export function useBillingEnabled(): boolean {
+  return useConfigStore((state) =>
+    featureFlagEnabled(state.featureFlags, BILLING_ENABLED_FLAG, false) &&
+    featureFlagEnabled(
+      state.featureFlags,
+      BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG,
+      false,
+    ),
   );
 }

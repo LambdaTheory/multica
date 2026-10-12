@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarProvider, useSidebar } from "@multica/ui/components/ui/sidebar";
 import { configStore } from "@multica/core/config";
 import {
+  BILLING_ENABLED_FLAG,
   BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG,
   PLUGINS_V1_FLAG,
 } from "@multica/core/feature-flags";
@@ -189,6 +190,7 @@ describe("SettingsPage workspace subscription feature flag", () => {
   it("shows and mounts Billing only when explicitly enabled", () => {
     navigationState.search = "tab=billing";
     configStore.getState().setFeatureFlags({
+      [BILLING_ENABLED_FLAG]: true,
       [BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG]: true,
     });
 

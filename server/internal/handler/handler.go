@@ -155,6 +155,13 @@ type Config struct {
 	// Surfaced through /api/config so self-hosted operators can confirm which
 	// server build is deployed. Empty in dev builds.
 	ServerVersion string
+	// BillingEnabled is the deployment-wide commercial switch parsed from
+	// MULTICA_BILLING_ENABLED once at startup and shared by the public config,
+	// the billing guards, and the router's entitlement / seat-capacity
+	// assembly. When false every commercial endpoint answers 403 without
+	// touching the billing upstream; auth, membership, and rate limiting are
+	// unaffected.
+	BillingEnabled bool
 }
 
 type cloudRuntimeProxy interface {

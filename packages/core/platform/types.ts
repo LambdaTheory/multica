@@ -37,6 +37,14 @@ export interface CoreProviderProps {
   onSessionExpired?: () => void;
   /** Identifies the calling client (web/desktop + version + os) to the server. */
   identity?: ClientIdentity;
+  /**
+   * Explicit client opt-in for product analytics (PostHog). Default: false —
+   * core never reads env vars, so the host app decides at build time
+   * (web: NEXT_PUBLIC_ANALYTICS_ENABLED, desktop: VITE_ANALYTICS_ENABLED).
+   * Even when opted in, analytics only starts if the backend's `/api/config`
+   * advertises a valid key.
+   */
+  analyticsEnabled?: boolean;
   /** Active locale, determined server-side (web) or at app boot (desktop). */
   locale: SupportedLocale;
   /** i18next resources, server-preloaded for the active locale. */

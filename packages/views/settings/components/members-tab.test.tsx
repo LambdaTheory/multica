@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { configStore } from "@multica/core/config";
-import { BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG } from "@multica/core/feature-flags";
+import {
+  BILLING_ENABLED_FLAG,
+  BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG,
+} from "@multica/core/feature-flags";
 import { renderWithI18n } from "../../test/i18n";
 
 const mockCreateMember = vi.hoisted(() => vi.fn());
@@ -232,7 +235,10 @@ describe("MembersTab", () => {
   it("links seat usage to billing when subscriptions are on", () => {
     configStore
       .getState()
-      .setFeatureFlags({ [BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG]: true });
+      .setFeatureFlags({
+        [BILLING_ENABLED_FLAG]: true,
+        [BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG]: true,
+      });
     data.summary = { seatCapacity: { used: 3, reserved: 1, purchased: 5 } };
     renderWithI18n(<MembersTab />);
 

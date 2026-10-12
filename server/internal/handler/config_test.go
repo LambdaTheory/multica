@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/multica-ai/multica/server/internal/auth"
+	"github.com/multica-ai/multica/server/internal/featureflags"
 	"github.com/multica-ai/multica/server/internal/testutil"
 )
 
@@ -60,6 +61,9 @@ func TestGetConfigIncludesRuntimeAuthConfig(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "google-client-id")
 	t.Setenv("POSTHOG_API_KEY", "phc_test")
 	t.Setenv("POSTHOG_HOST", "https://eu.i.posthog.com")
+	// Analytics is off by default; the key above is only published when the
+	// deployment explicitly opted in.
+	t.Setenv("ANALYTICS_DISABLED", "false")
 	t.Setenv("MULTICA_DAEMON_SERVER_URL", "")
 	t.Setenv("MULTICA_PUBLIC_URL", "https://api.example.com/")
 	t.Setenv("MULTICA_APP_URL", "https://app.example.com/")
@@ -497,6 +501,88 @@ func TestGetConfigExposesEnabledPluginsV1Flag(t *testing.T) {
 	}
 	if !cfg.FeatureFlags["plugins_v1"] {
 		t.Fatal("plugins_v1: want true with flag enabled, got false")
+	}
+}
+
+// TestGetConfigPublishesBillingSwitchAndSubscriptionCombination pins the
+// public commercial decisions: billing_enabled mirrors the startup switch,
+// and billing_workspace_subscriptions is the AND of the switch and the
+// subscriptions flag.
+func TestGetConfigPublishesBillingSwitchAndSubscriptionCombination(t *testing.T) {
+	cases := []struct {
+		name           string
+		billingEnabled bool
+		subscriptions  bool
+		wantBilling    bool
+		wantSubs       bool
+	}{
+		{name: "default off off", billingEnabled: false, subscriptions: false, wantBilling: false, wantSubs: false},
+		{name: "switch off dominates flag on", billingEnabled: false, subscriptions: true, wantBilling: false, wantSubs: false},
+		{name: "switch on flag off", billingEnabled: true, subscriptions: false, wantBilling: true, wantSubs: false},
+		{name: "both on", billingEnabled: true, subscriptions: true, wantBilling: true, wantSubs: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := &Handler{}
+			h.cfg.BillingEnabled = tc.billingEnabled
+			withFeatureFlag(t, h, featureflags.BillingWorkspaceSubscriptions, tc.subscriptions)
+
+			req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+			w := httptest.NewRecorder()
+			h.GetConfig(w, req)
+			if w.Code != http.StatusOK {
+				t.Fatalf("GetConfig: expected 200, got %d: %s", w.Code, w.Body.String())
+			}
+			var cfg AppConfig
+			if err := json.Unmarshal(w.Body.Bytes(), &cfg); err != nil {
+				t.Fatalf("decode config: %v", err)
+			}
+			if cfg.FeatureFlags["billing_enabled"] != tc.wantBilling {
+				t.Fatalf("billing_enabled = %v, want %v", cfg.FeatureFlags["billing_enabled"], tc.wantBilling)
+			}
+			if cfg.FeatureFlags["billing_workspace_subscriptions"] != tc.wantSubs {
+				t.Fatalf("billing_workspace_subscriptions = %v, want %v", cfg.FeatureFlags["billing_workspace_subscriptions"], tc.wantSubs)
+			}
+		})
+	}
+}
+
+// TestGetConfigWithholdsPosthogKeyUnlessExplicitOptIn pins the shared
+// analytics judgment: no PostHog key is published unless the deployment
+// explicitly opted in with ANALYTICS_DISABLED=false/0.
+func TestGetConfigWithholdsPosthogKeyUnlessExplicitOptIn(t *testing.T) {
+	fetch := func() AppConfig {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+		w := httptest.NewRecorder()
+		testHandler.GetConfig(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("GetConfig: expected 200, got %d: %s", w.Code, w.Body.String())
+		}
+		var cfg AppConfig
+		if err := json.Unmarshal(w.Body.Bytes(), &cfg); err != nil {
+			t.Fatalf("decode config: %v", err)
+		}
+		return cfg
+	}
+
+	t.Setenv("POSTHOG_API_KEY", "phc_test")
+	t.Setenv("POSTHOG_HOST", "")
+
+	for _, disabled := range []string{"", "true", "1", "yes", "FALSE?"} {
+		t.Setenv("ANALYTICS_DISABLED", disabled)
+		if cfg := fetch(); cfg.PosthogKey != "" {
+			t.Fatalf("ANALYTICS_DISABLED=%q: posthog_key = %q, want omitted while analytics is not explicitly opted in", disabled, cfg.PosthogKey)
+		}
+	}
+
+	t.Setenv("ANALYTICS_DISABLED", "false")
+	cfg := fetch()
+	if cfg.PosthogKey != "phc_test" {
+		t.Fatalf("posthog_key = %q, want phc_test after explicit opt-in", cfg.PosthogKey)
+	}
+	if cfg.PosthogHost != "https://us.i.posthog.com" {
+		t.Fatalf("posthog_host = %q, want default host", cfg.PosthogHost)
 	}
 }
 

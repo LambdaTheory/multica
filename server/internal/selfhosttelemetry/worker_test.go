@@ -122,7 +122,7 @@ func testWorker(state telemetryState, collector *fakeCollector, sender *fakeSend
 	}, session
 }
 
-func TestDefaultConfigCollectsAndSends(t *testing.T) {
+func TestOptInConfigCollectsAndSends(t *testing.T) {
 	t.Parallel()
 	id := uuid.MustParse("01010101-2222-3333-4444-555555555555")
 	today := time.Date(2026, 9, 10, 0, 0, 0, 0, time.UTC)
@@ -130,7 +130,7 @@ func TestDefaultConfigCollectsAndSends(t *testing.T) {
 	session := &fakeSession{state: telemetryState{InstanceID: id}}
 	collector := &fakeCollector{}
 	sender := &fakeSender{}
-	worker := newWithFactories(ConfigFromDoNotTrack(""), "v1.2.3", nil, workerFactories{
+	worker := newWithFactories(ConfigFromDoNotTrack("0"), "v1.2.3", nil, workerFactories{
 		store:     func() leaderStore { return &fakeStore{session: session, leader: true} },
 		collector: func() eventCollector { return collector },
 		sender:    func() eventSender { return sender },

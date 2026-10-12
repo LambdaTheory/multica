@@ -17,14 +17,17 @@ func TestConfigFromDoNotTrack(t *testing.T) {
 		raw     string
 		enabled bool
 	}{
-		{"", true},
-		{"0", true},
-		{"false", true},
-		{"yes", true},
+		// Default off: missing, empty, and unrecognized values keep the
+		// instance silent. Only an explicit 0/false opts in.
+		{"", false},
+		{"yes", false},
 		{"1", false},
 		{" true ", false},
 		{"TRUE", false},
 		{" TrUe\t", false},
+		{"0", true},
+		{"false", true},
+		{" FALSE ", true},
 	} {
 		t.Run(tt.raw, func(t *testing.T) {
 			t.Parallel()
@@ -41,8 +44,8 @@ func TestLogStartupStatus(t *testing.T) {
 		config  Config
 		message string
 	}{
-		{name: "enabled", config: Config{Enabled: true}, message: "self-host telemetry enabled"},
-		{name: "disabled", config: Config{Enabled: false}, message: "self-host telemetry disabled via DO_NOT_TRACK"},
+		{name: "enabled", config: Config{Enabled: true}, message: "self-host telemetry enabled via DO_NOT_TRACK=0"},
+		{name: "disabled", config: Config{Enabled: false}, message: "self-host telemetry disabled (default off; set DO_NOT_TRACK=0 or false to enable)"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

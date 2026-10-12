@@ -122,19 +122,6 @@
     "platform_windows": "Windows",
     "step2_label": "デーモンを起動"
   },
-  "cloud_waitlist": {
-    "intro_main": "クラウドランタイムはまだ提供されていません。メールアドレスを残していただければ、準備ができ次第ご連絡します。",
-    "intro_warning": "注意: ランタイムがないとエージェントは実行を開始できません。今スキップすると、戻ってきてインストールするまで何も実行されません。",
-    "email_label": "メールアドレス",
-    "email_placeholder": "you@work.com",
-    "reason_label": "クラウドを使いたい理由",
-    "optional": "任意",
-    "reason_placeholder": "例: エージェントを 24 時間稼働させたい、チームが複数のデバイスで作業している など。",
-    "join": "ウェイトリストに登録",
-    "on_list": "登録済みです",
-    "success_toast": "ウェイトリストに登録しました。クラウドランタイムが利用可能になったらメールでお知らせします。",
-    "failed_toast": "ウェイトリストに登録できませんでした"
-  },
   "welcome_after_onboarding": {
     "skip": {
       "loading": "ワークスペースを準備中…",
@@ -211,9 +198,6 @@
     "empty_skip_title": "今はスキップ",
     "empty_skip_subtitle": "ランタイムに接続するまでエージェントは実行できません。",
     "empty_skip_action": "スキップ",
-    "empty_waitlist_title": "クラウドコンピュータを使う",
-    "empty_waitlist_subtitle": "クラウドでコンピュータを動かします。まだ提供されていません。",
-    "empty_waitlist_action": "近日公開",
     "skip": "今はスキップ",
     "refresh": "更新",
     "refreshing": "更新中…",
@@ -233,9 +217,6 @@
     "cli_title": "ターミナルから接続",
     "cli_subtitle": "サーバー、リモート開発環境、ヘッドレスなコンピュータを接続します。ターミナルが必要です。",
     "cli_action": "手順を表示",
-    "cloud_title": "クラウドコンピュータを使う",
-    "cloud_subtitle": "クラウドでコンピュータを動かします。まだ提供されていません。",
-    "cloud_action": "近日公開",
     "cli_dialog_title": "ターミナルから接続",
     "cli_dialog_pick_hint": "上でコンピュータを選んでください。",
     "cli_dialog_connect": "接続して続ける",

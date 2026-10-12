@@ -12,21 +12,23 @@ type Config struct {
 	Enabled bool
 }
 
-// ConfigFromDoNotTrack implements the industry-standard opt-out switch used by
-// the self-hosted server. Only 1 and true (case-insensitive), after trimming,
-// disable telemetry; every other value preserves the default-on behavior.
+// ConfigFromDoNotTrack implements the deployment-level telemetry switch.
+// Telemetry is off by default: only an explicit "0" or "false"
+// (case-insensitive, trimmed) opts the deployment in, so a forked or
+// self-hosted instance never reports anything without a deliberate operator
+// decision.
 func ConfigFromDoNotTrack(raw string) Config {
 	raw = strings.TrimSpace(raw)
-	disabled := raw == "1" || strings.EqualFold(raw, "true")
-	return Config{Enabled: !disabled}
+	enabled := raw == "0" || strings.EqualFold(raw, "false")
+	return Config{Enabled: enabled}
 }
 
-// LogStartupStatus makes the default-on behavior observable without logging
-// the raw environment value or any telemetry data.
+// LogStartupStatus makes the switch observable without logging the raw
+// environment value or any telemetry data.
 func LogStartupStatus(logger *slog.Logger, config Config) {
 	if config.Enabled {
-		logger.Info("self-host telemetry enabled")
+		logger.Info("self-host telemetry enabled via DO_NOT_TRACK=0")
 		return
 	}
-	logger.Info("self-host telemetry disabled via DO_NOT_TRACK")
+	logger.Info("self-host telemetry disabled (default off; set DO_NOT_TRACK=0 or false to enable)")
 }

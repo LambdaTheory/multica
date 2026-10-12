@@ -49,6 +49,11 @@ const HTML_LANG: Record<SupportedLocale, string> = {
   fr: "fr-FR",
 };
 
+// Build-time analytics opt-in, injected by Vite (VITE_ANALYTICS_ENABLED).
+// Default (unset or anything but "true") keeps product analytics fully off —
+// core then never initializes the SDK even if the backend advertises a key.
+const ANALYTICS_ENABLED = import.meta.env.VITE_ANALYTICS_ENABLED === "true";
+
 
 /**
  * Cmd/Ctrl+W: close the active tab. When the last real tab is closed
@@ -465,6 +470,7 @@ export default function App() {
           onSessionExpired={
             windowContext.kind === "main" ? handleSessionExpired : undefined
           }
+          analyticsEnabled={ANALYTICS_ENABLED}
           identity={identity}
           locale={locale}
           resources={resources}

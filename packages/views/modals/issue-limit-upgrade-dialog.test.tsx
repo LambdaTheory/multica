@@ -50,6 +50,7 @@ vi.mock("@multica/core/paths", () => ({
 
 vi.mock("@multica/core/config", () => ({
   useFeatureEnabled: () => featureState.billingEnabled,
+  useBillingEnabled: () => featureState.billingEnabled,
 }));
 
 vi.mock("../navigation/context", () => ({

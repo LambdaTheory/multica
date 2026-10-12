@@ -74,8 +74,7 @@ import {
   workspaceSubscriptionSummaryOptions,
 } from "@multica/core/billing";
 import { useWorkspaceId } from "@multica/core/hooks";
-import { useFeatureEnabled } from "@multica/core/config";
-import { BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG } from "@multica/core/feature-flags";
+import { useBillingEnabled } from "@multica/core/config";
 import { useCurrentWorkspace } from "@multica/core/paths";
 import {
   invitationListOptions,
@@ -459,11 +458,13 @@ export function MembersTab() {
     variant?: "destructive";
     onConfirm: () => Promise<void>;
   } | null>(null);
+  const billingEnabled = useBillingEnabled();
   const previewSeatPurchase = usePreviewWorkspaceSeatPurchase();
   const purchaseSeats = usePurchaseWorkspaceSeats(wsId);
   const seatPurchaseSummary = useQuery({
     ...workspaceSubscriptionSummaryOptions(wsId),
     enabled:
+      billingEnabled &&
       inviteSeatPurchase?.phase === "waiting" &&
       inviteSeatPurchase.workspaceId === wsId,
     staleTime: 0,
@@ -478,7 +479,6 @@ export function MembersTab() {
   // Only owners/admins may list share links; skip the request for plain
   // members (the server would 403) once the current member's role is known.
   const { data: shareLinks = [] } = useQuery(shareLinkListOptions(wsId, canManageWorkspace));
-  const billingEnabled = useFeatureEnabled(BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG, false);
   const seats = useQuery({
     ...workspaceSubscriptionSummaryOptions(wsId),
     enabled: billingEnabled && canManageWorkspace,
@@ -517,7 +517,11 @@ export function MembersTab() {
     } catch (e) {
       const code = errorCode(e);
       const capacityFailure = seatInvitationCapacityFailure(code);
-      if (code === "seat_capacity_overcommitted") {
+      // Recovery below re-enters billing APIs (summary fetch, seat preview,
+      // purchase confirmation). With the effective billing gate off, none of
+      // those requests may fire — the original error surfaces unchanged via
+      // the generic toast at the bottom instead.
+      if (billingEnabled && code === "seat_capacity_overcommitted") {
         try {
           const summary = await qc.fetchQuery({
             ...workspaceSubscriptionSummaryOptions(wsId),
@@ -551,7 +555,7 @@ export function MembersTab() {
         }
         return;
       }
-      if (capacityFailure === "full") {
+      if (billingEnabled && capacityFailure === "full") {
         try {
           const preview = await previewSeatPurchase.mutateAsync({
             additionalSeats: 1,
@@ -599,6 +603,7 @@ export function MembersTab() {
 
   const handlePurchaseSeatAndInvite = async () => {
     if (
+      !billingEnabled ||
       !inviteSeatPurchase ||
       (inviteSeatPurchase.phase !== "review" &&
         !(inviteSeatPurchase.phase === "error" && inviteSeatPurchase.retryable))
@@ -680,6 +685,7 @@ export function MembersTab() {
   useEffect(() => {
     const purchase = inviteSeatPurchase;
     if (
+      !billingEnabled ||
       purchase?.phase !== "waiting" ||
       purchase.workspaceId !== wsId ||
       purchase.submittedAt == null ||
@@ -726,6 +732,7 @@ export function MembersTab() {
         });
       });
   }, [
+    billingEnabled,
     inviteSeatPurchase,
     seatPurchaseSummary.data,
     seatPurchaseSummary.dataUpdatedAt,
@@ -1167,7 +1174,7 @@ export function MembersTab() {
       </Dialog>
 
       <AlertDialog
-        open={inviteSeatPurchase !== null}
+        open={billingEnabled && inviteSeatPurchase !== null}
         onOpenChange={(open) => {
           if (
             !open &&

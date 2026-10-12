@@ -258,6 +258,8 @@
     "load_failed_description": "You came back from Stripe, but we could not load your workspace list to open the right billing page. Open Workspace settings → Billing to check the current state.",
     "workspace_missing_title": "Could not find that workspace",
     "workspace_missing_description": "You came back from Stripe, but this workspace is no longer available to you — it may have been removed, or your access changed. Open Billing in the workspace you expected to check the current state.",
+    "billing_disabled_title": "Billing is unavailable",
+    "billing_disabled_description": "This deployment has billing turned off, so this payment return page can't look up or process anything. You can close it and continue using the app.",
     "retry": "Try again",
     "go_to_app": "Go to Multica"
   }

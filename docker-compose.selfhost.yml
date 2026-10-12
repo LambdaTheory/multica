@@ -111,9 +111,14 @@ services:
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:-}
       ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
       DISABLE_WORKSPACE_CREATION: ${DISABLE_WORKSPACE_CREATION:-}
-      DO_NOT_TRACK: ${DO_NOT_TRACK:-}
-      # Managed Cloud stays off for self-hosting. All managed Cloud clients use
-      # this single URL when it is configured.
+      DO_NOT_TRACK: ${DO_NOT_TRACK:-true}
+      ANALYTICS_DISABLED: ${ANALYTICS_DISABLED:-true}
+      POSTHOG_API_KEY: ${POSTHOG_API_KEY:-}
+      POSTHOG_HOST: ${POSTHOG_HOST:-https://us.i.posthog.com}
+      ANALYTICS_ENVIRONMENT: ${ANALYTICS_ENVIRONMENT:-}
+      MULTICA_BILLING_ENABLED: ${MULTICA_BILLING_ENABLED:-false}
+      FF_BILLING_WORKSPACE_SUBSCRIPTIONS: ${FF_BILLING_WORKSPACE_SUBSCRIPTIONS:-false}
+      # Cloud connectivity does not enable billing without the master switch.
       MULTICA_CLOUD_URL: ${MULTICA_CLOUD_URL:-}
       GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
       GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}

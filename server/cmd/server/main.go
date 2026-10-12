@@ -216,6 +216,27 @@ func parseLLMDisableThinking(raw string) (bool, error) {
 	}
 }
 
+// parseBillingEnabled turns the raw MULTICA_BILLING_ENABLED value into the
+// deployment-wide commercial switch: only an explicit "true"/"1"
+// (case-insensitive, trimmed) enables billing. "false"/"0" and empty values
+// are normal disabled states; anything else is a typo and logs a warning so
+// an operator who meant "true" is not left debugging a silently closed
+// billing surface. The parsed value feeds the handler config, the billing
+// guards, and the router's entitlement / seat-capacity assembly.
+func parseBillingEnabled(raw string) bool {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "":
+		return false
+	case "1", "true":
+		return true
+	case "0", "false":
+		return false
+	default:
+		slog.Warn("invalid MULTICA_BILLING_ENABLED, treating billing as disabled", "value", raw)
+		return false
+	}
+}
+
 func envPositiveInt64(name string, def int64) int64 {
 	raw := os.Getenv(name)
 	if raw == "" {
@@ -326,10 +347,19 @@ func newMainHTTPServer(addr string, handler http.Handler) *http.Server {
 
 func main() {
 	logger.Init()
-	// Read the opt-out before constructing any telemetry dependency. In the
-	// disabled case no collector or HTTP client is ever created.
+	// Read the opt-out before constructing any telemetry dependency; in the
+	// disabled case no collector or HTTP client is ever created. Off by
+	// default; only an explicit DO_NOT_TRACK=0/false opts in.
 	telemetryConfig := selfhosttelemetry.ConfigFromDoNotTrack(os.Getenv("DO_NOT_TRACK"))
 	selfhosttelemetry.LogStartupStatus(slog.Default(), telemetryConfig)
+	// Parsed once so the handler config, billing guards, and router wiring all
+	// read the same startup decision.
+	billingEnabled := parseBillingEnabled(os.Getenv("MULTICA_BILLING_ENABLED"))
+	if billingEnabled {
+		slog.Info("commercial billing enabled via MULTICA_BILLING_ENABLED")
+	} else {
+		slog.Info("commercial billing disabled (default off; set MULTICA_BILLING_ENABLED=true or 1 to enable)")
+	}
 	// Warn about missing configuration
 	if err := jwtSecretBootError(os.Getenv("JWT_SECRET"), os.Getenv("APP_ENV")); err != nil {
 		slog.Error(
@@ -693,6 +723,7 @@ func main() {
 		HeartbeatScheduler:  heartbeatScheduler,
 		LLMMaxRetries:       llmMaxRetries,
 		LLMDisableThinking:  llmDisableThinking,
+		BillingEnabled:      billingEnabled,
 	})
 	var replicaQueries *db.Queries
 	if replicaPool != nil {

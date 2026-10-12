@@ -32,12 +32,6 @@ describe("trust pages copy", () => {
     createLandingDict(locale, true),
   );
 
-  it("links the privacy consent to the privacy policy in every locale", () => {
-    for (const t of dicts) {
-      expect(t.contactSales.consent.privacyLinkHref).toBe("/privacy");
-    }
-  });
-
   it("keeps the placeholder legal entity out of every locale", () => {
     for (const t of dicts) {
       expect(JSON.stringify(t)).not.toContain("Multica, Inc");

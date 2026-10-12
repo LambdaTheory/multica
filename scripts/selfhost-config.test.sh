@@ -60,6 +60,27 @@ require_config "$config" 'SMTP_FROM_EMAIL: multica@example.com'
 require_config "$config" 'MULTICA_DATABASE_STARTUP_TIMEOUT: 3m'
 require_config "$config" 'MULTICA_DATABASE_CONNECT_TIMEOUT: 5s'
 require_config "$config" 'MAINTENANCE_PORT: ""'
+require_config "$config" 'MULTICA_BILLING_ENABLED: "false"'
+require_config "$config" 'FF_BILLING_WORKSPACE_SUBSCRIPTIONS: "false"'
+require_config "$config" 'DO_NOT_TRACK: "true"'
+require_config "$config" 'ANALYTICS_DISABLED: "true"'
+
+opt_in_config="$(
+  MULTICA_BILLING_ENABLED=true FF_BILLING_WORKSPACE_SUBSCRIPTIONS=true \
+    DO_NOT_TRACK=false ANALYTICS_DISABLED=false POSTHOG_API_KEY=config-test-key \
+    docker compose --env-file "$tmp_env" -f docker-compose.selfhost.yml config
+)"
+require_config "$opt_in_config" 'MULTICA_BILLING_ENABLED: "true"'
+require_config "$opt_in_config" 'FF_BILLING_WORKSPACE_SUBSCRIPTIONS: "true"'
+require_config "$opt_in_config" 'DO_NOT_TRACK: "false"'
+require_config "$opt_in_config" 'ANALYTICS_DISABLED: "false"'
+require_config "$opt_in_config" 'POSTHOG_API_KEY: config-test-key'
+
+build_config="$(
+  NEXT_PUBLIC_ANALYTICS_ENABLED=true docker compose --env-file "$tmp_env" \
+    -f docker-compose.selfhost.yml -f docker-compose.selfhost.build.yml config
+)"
+require_config "$build_config" 'NEXT_PUBLIC_ANALYTICS_ENABLED: "true"'
 maintenance_config="$(MAINTENANCE_PORT=6061 docker compose --env-file "$tmp_env" -f docker-compose.selfhost.yml config)"
 require_config "$maintenance_config" 'MAINTENANCE_PORT: "6061"'
 if grep -Eq '(published|target):.*6061' <<<"$maintenance_config"; then
