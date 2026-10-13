@@ -7,10 +7,16 @@ import (
 )
 
 const (
+	// BillingEnabled publishes the deployment-wide commercial switch parsed
+	// from MULTICA_BILLING_ENABLED at startup. It is NOT a featureflag.Service
+	// flag: the effective value is injected by main and mirrored here so
+	// clients see one authoritative decision.
+	BillingEnabled = "billing_enabled"
 	// BillingWorkspaceSubscriptions gates the workspace-scoped entitlement,
 	// Stripe Checkout, seat reconcile, and Billing Portal proxy surface. It is
 	// deliberately off by default so the main repository can ship before the
 	// managed cloud enables its matching billing.subscriptions capability.
+	// The published decision is billingEnabled && this flag.
 	BillingWorkspaceSubscriptions = "billing_workspace_subscriptions"
 	// ComposioMCPApps gates the Composio app management UI and — together with
 	// the MUL-3963 permission_mode / invocation_targets access model it depends
@@ -78,11 +84,17 @@ func LocalSearchIndexEnabled(ctx context.Context, flags *featureflag.Service) bo
 	return flags.IsEnabled(ctx, LocalSearchIndex, true)
 }
 
-func EvaluateFrontendPublicFlags(ctx context.Context, flags *featureflag.Service) map[string]bool {
-	out := make(map[string]bool, len(frontendPublicFlags)+3)
+func EvaluateFrontendPublicFlags(ctx context.Context, flags *featureflag.Service, billingEnabled bool) map[string]bool {
+	out := make(map[string]bool, len(frontendPublicFlags)+4)
 	for _, key := range frontendPublicFlags {
 		out[key] = flags.IsEnabled(ctx, key, false)
 	}
+	// The deployment-wide billing switch dominates the subscription sub-flag:
+	// a billing-disabled deployment must never publish subscriptions as
+	// available, even when its flag file says otherwise.
+	out[BillingEnabled] = billingEnabled
+	out[BillingWorkspaceSubscriptions] = billingEnabled &&
+		flags.IsEnabled(ctx, BillingWorkspaceSubscriptions, false)
 	out[agentBuilderCompat] = true
 	out[agentSkillTogglesCompat] = true
 	out[resourceLabelsCompat] = true

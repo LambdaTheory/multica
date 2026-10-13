@@ -260,6 +260,12 @@ type RouterOptions struct {
 	// than read here, for the same fail-the-boot-in-main-only reason: the raw
 	// value is validated by parseLLMDisableThinking before the router exists.
 	LLMDisableThinking bool
+	// BillingEnabled carries the deployment-wide commercial switch parsed
+	// once from MULTICA_BILLING_ENABLED in main(). When false no entitlement
+	// client or seat-capacity executor/worker is injected and the billing
+	// handlers answer 403 without a Cloud round-trip; Cloud runtime (Fleet,
+	// mcn_ PATs) is unaffected.
+	BillingEnabled bool
 }
 
 func buildChannelSupervisor(
@@ -443,6 +449,7 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 		LLMDefaultModel:          strings.TrimSpace(os.Getenv("MULTICA_LLM_DEFAULT_MODEL")),
 		LLMMaxRetries:            opts.LLMMaxRetries,
 		LLMDisableThinking:       opts.LLMDisableThinking,
+		BillingEnabled:           opts.BillingEnabled,
 		ServerVersion:            normalizeServerVersion(version),
 	}
 	h := handler.New(queries, pool, hub, bus, emailSvc, store, cfSigner, analyticsClient, signupConfig, daemonHub)
@@ -456,28 +463,34 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 	h.TaskService.FeatureFlags = opts.FeatureFlags
 	h.TaskService.Metrics = opts.BusinessMetrics
 	h.IssueService.Metrics = opts.BusinessMetrics
-	entitlementClient, entitlementErr := entitlement.New(entitlement.Config{
-		BaseURL:  signupConfig.CloudURL,
-		Observer: opts.BusinessMetrics,
-	})
-	if entitlementErr != nil {
-		slog.Error("entitlement policy client disabled by malformed Multica Cloud URL", "error", entitlementErr)
-		opts.BusinessMetrics.RecordEntitlementConfigError()
-	} else if entitlementClient.Enabled() {
-		h.Entitlements = entitlementClient
-		h.TaskService.Entitlements = entitlementClient
-		h.IssueService.Entitlements = entitlementClient
-		h.AutopilotService.Entitlements = entitlementClient
-		h.AutopilotService.QuotaMetrics = opts.BusinessMetrics
-	}
-	// Cloud Runtime and strict seat capacity are one managed deployment. Reuse
-	// the same base URL so Billing cannot be readable while invitation writes
-	// silently skip Cloud's authoritative seat policy.
-	h.SeatCapacity = seatCapacityExecutor(signupConfig.CloudURL)
-	capacityLocker := seatcapacity.NewWorkspaceLocker(pool)
-	h.SeatCapacityLocker = capacityLocker
-	if seatcapacity.CanRunWorker(h.SeatCapacity) {
-		h.SeatCapacityWorker = seatcapacity.NewWorker(queries, h.SeatCapacity, capacityLocker, seatcapacity.WorkerConfig{})
+	// Commercial wiring exists only on a billing-enabled deployment. With the
+	// switch off, Entitlements, SeatCapacity, SeatCapacityLocker, and
+	// SeatCapacityWorker stay nil — the existing nil/unlimited self-hosted
+	// path, which also keeps the quota reconciler in main() from starting.
+	if signupConfig.BillingEnabled {
+		entitlementClient, entitlementErr := entitlement.New(entitlement.Config{
+			BaseURL:  signupConfig.CloudURL,
+			Observer: opts.BusinessMetrics,
+		})
+		if entitlementErr != nil {
+			slog.Error("entitlement policy client disabled by malformed Multica Cloud URL", "error", entitlementErr)
+			opts.BusinessMetrics.RecordEntitlementConfigError()
+		} else if entitlementClient.Enabled() {
+			h.Entitlements = entitlementClient
+			h.TaskService.Entitlements = entitlementClient
+			h.IssueService.Entitlements = entitlementClient
+			h.AutopilotService.Entitlements = entitlementClient
+			h.AutopilotService.QuotaMetrics = opts.BusinessMetrics
+		}
+		// Cloud Runtime and strict seat capacity are one managed deployment. Reuse
+		// the same base URL so Billing cannot be readable while invitation writes
+		// silently skip Cloud's authoritative seat policy.
+		h.SeatCapacity = seatCapacityExecutor(signupConfig.CloudURL)
+		capacityLocker := seatcapacity.NewWorkspaceLocker(pool)
+		h.SeatCapacityLocker = capacityLocker
+		if seatcapacity.CanRunWorker(h.SeatCapacity) {
+			h.SeatCapacityWorker = seatcapacity.NewWorker(queries, h.SeatCapacity, capacityLocker, seatcapacity.WorkerConfig{})
+		}
 	}
 	if opts.BusinessMetrics != nil {
 		// Wire the BusinessMetrics receiver into the cloud runtime client
@@ -1504,7 +1517,6 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 	trustedProxies := middleware.ParseTrustedProxies(os.Getenv("RATE_LIMIT_TRUSTED_PROXIES"))
 	authRL := middleware.RateLimit(rdb, envPositiveInt("RATE_LIMIT_AUTH", 5), time.Minute, trustedProxies)
 	authVerifyRL := middleware.RateLimit(rdb, envPositiveInt("RATE_LIMIT_AUTH_VERIFY", 20), time.Minute, trustedProxies)
-	contactSalesRL := middleware.RateLimit(rdb, envPositiveInt("RATE_LIMIT_CONTACT_SALES", 5), time.Hour, trustedProxies)
 	r.With(authRL).Post("/auth/send-code", h.SendCode)
 	r.With(authVerifyRL).Post("/auth/verify-code", h.VerifyCode)
 	r.With(authRL).Post("/auth/google", h.GoogleLogin)
@@ -1512,7 +1524,6 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 
 	// Public API
 	r.Get("/api/config", h.GetConfig)
-	r.With(contactSalesRL).Post("/api/contact-sales", h.CreateContactSales)
 	// Public share-link preview — no auth: shows the workspace name/slug and
 	// inviter so a not-yet-logged-in visitor can see what they're joining.
 	r.Get("/api/share-links/{code}", h.GetShareLinkInfo)
@@ -1654,7 +1665,6 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 		r.Patch("/api/me", h.UpdateMe)
 		r.Patch("/api/me/onboarding", h.PatchOnboarding)
 		r.Post("/api/me/onboarding/complete", h.CompleteOnboarding)
-		r.Post("/api/me/onboarding/cloud-waitlist", h.JoinCloudWaitlist)
 		// DEPRECATED — shim routes for desktop < v3 during the rollout
 		// window. v3 frontend creates the Helper agent + starter issue
 		// via generic CreateAgent / CreateIssue and only calls /complete

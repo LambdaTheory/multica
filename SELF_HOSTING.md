@@ -1,6 +1,6 @@
 # Self-Hosting Guide
 
-Deploy Multica on your own infrastructure in minutes.
+Deploy Multica on your own infrastructure. For fork-specific behavior, build the images from this checkout: prebuilt upstream images do not contain this fork's changes.
 
 ## Architecture
 
@@ -14,17 +14,23 @@ Each user who runs AI agents locally also installs the **`multica` CLI** and run
 
 ## Anonymous Deployment Telemetry
 
-The self-hosted API server sends one first-party, deployment-level anonymous snapshot per UTC day to the fixed Multica endpoint `https://telemetry.multica.ai/v1/telemetry/events`. This helps maintainers understand which release versions are in use, deployment-size ranges, and aggregate run volume. The endpoint is compiled into the server and cannot be redirected through configuration.
+Self-host deployment snapshots are disabled by default. Set `DO_NOT_TRACK=false` or `DO_NOT_TRACK=0` on the API server to explicitly enable the first-party, deployment-level snapshot. The endpoint is fixed at `https://telemetry.multica.ai/v1/telemetry/events` and cannot be redirected through configuration.
 
-The snapshot contains only the release version; bucketed counts of workspaces, distinct human members, active agents, and daemons seen in the previous 24 hours; and aggregate counts of runs started, completed, failed, and cancelled in that window. It does not include names, email addresses or domains, IP addresses, business IDs, host/device details, repository or organization details, model/plugin data, prompts or output, comments or chats, paths, token/cost data, credentials, errors, stacks, or logs. This telemetry is not used for billing, licensing, authentication, or security decisions.
+The snapshot contains a deployment instance ID, the release version, the snapshot day, bucketed counts of workspaces, distinct human members, active agents, and daemons seen in the previous 24 hours; and aggregate counts of runs started, completed, failed, and cancelled in that window. It does not include names, email addresses or domains, IP addresses, business IDs, host/device details, repository or organization details, model/plugin data, prompts or output, comments or chats, paths, token/cost data, credentials, errors, stacks, or logs. This telemetry is not used for billing, licensing, authentication, or security decisions.
 
-Telemetry is enabled by default. To stop both collection and network delivery, set `DO_NOT_TRACK=1` or `DO_NOT_TRACK=true` on the API server and recreate/restart the backend. The deployment identity remains in PostgreSQL, so enabling it again does not create a new identity. `ANALYTICS_DISABLED` controls the separate PostHog integration and does not disable this first-party telemetry.
+The snapshot is opt-in: only an explicit `DO_NOT_TRACK=false` or `DO_NOT_TRACK=0` enables it. `ANALYTICS_DISABLED` independently controls the server-side PostHog integration, which is also disabled by default and requires an explicit `false`/`0` plus an API key. These settings are read at startup; restart the API after changing them. Local logs and Prometheus metrics are unaffected. The deployment identity remains in PostgreSQL, so disabling snapshots does not delete it.
 
-When cloning a production database for staging or testing, clear the clone's `instance_telemetry_state` table before starting its API server (or set `DO_NOT_TRACK=true`); otherwise both deployments share one identity and their same-day snapshots can silently deduplicate each other.
+Web and desktop analytics additionally require a client build-time opt-in: `NEXT_PUBLIC_ANALYTICS_ENABLED=true` for web or `VITE_ANALYTICS_ENABLED=true` for desktop. Both default to false, independently of backend configuration. Rebuild the client to change these values; the backend must also allow analytics and supply a key. The local Docker build override forwards the web build argument.
 
-## Quick Install (Recommended)
+When cloning a production database for staging or testing, keep `DO_NOT_TRACK=true`. If snapshots are deliberately enabled for the clone, give it a separate deployment identity before starting its API server; otherwise both deployments share one identity and their same-day snapshots can silently deduplicate each other.
 
-Two commands to set up everything — server, CLI, and configuration.
+## Commercial billing
+
+Commercial billing is disabled by default. Set `MULTICA_BILLING_ENABLED=true` or `1` to enable it; only explicit `true`/`1` values enable the feature. Restart the API after changing this startup setting. The existing `FF_BILLING_WORKSPACE_SUBSCRIPTIONS` remains a child switch for workspace subscriptions. When billing is disabled, billing UI and commercial APIs, commercial task automation quotas, and seat controls are disabled; Cloud runtime and PAT authentication are unaffected. Disabling billing does not cancel existing upstream subscriptions. Stripe webhook requests receive a non-success response while disabled and may be retried, so reconcile pending payments and capacity intents before switching the setting. Existing data is retained.
+
+## Upstream Installer
+
+The following installers deploy upstream releases, not this fork. To use this fork's defaults and feature switches, follow [Build This Fork](#build-this-fork-recommended) below.
 
 <details open>
 <summary><b>macOS / Linux</b></summary>
@@ -53,7 +59,7 @@ multica setup self-host
 ```
 </details>
 
-This installs the `multica` CLI, checks out the latest self-host assets, pulls the official Multica images from GHCR, and configures everything for localhost.
+This installs the upstream `multica` CLI and self-host assets. The installer and release URLs are retained for compatibility; they do not build this checkout.
 
 Open http://localhost:3000. To log in, configure `RESEND_API_KEY` in `.env` for email-based codes (recommended), or leave Resend unset and copy the generated code from the backend logs. See [Step 2 — Log In](#step-2--log-in) for details.
 
@@ -67,25 +73,23 @@ Open http://localhost:3000. To log in, configure `RESEND_API_KEY` in `.env` for 
 
 ---
 
-## Step-by-Step Setup (Alternative)
+## Build This Fork (Recommended)
 
-If you prefer to run each step manually:
+Build the backend and web images from the fork's source:
 
 ### Step 1 — Start the Server
 
 **Prerequisites:** Docker and Docker Compose.
 
 ```bash
-git clone https://github.com/multica-ai/multica.git
+git clone https://github.com/LambdaTheory/multica.git
 cd multica
-make selfhost
+make selfhost-build
 ```
 
-`make selfhost` automatically creates `.env` from the example, generates a random `JWT_SECRET`, and starts all services via Docker Compose.
+`make selfhost-build` prepares `.env`, generates a random `JWT_SECRET` when needed, builds the backend and web images, and starts the services via Docker Compose.
 
-By default it pulls the latest stable release images from GHCR. To build the backend/web from your current checkout instead, run `make selfhost-build`.
-If the selected GHCR tag has not been published yet, `make selfhost` now tells you to fall back to `make selfhost-build`.
-`make selfhost-build` uses local `multica-backend:dev` / `multica-web:dev` tags, so it does not overwrite the pulled `:latest` images.
+The default Compose configuration references upstream release images, which do not contain this fork's changes. To build the backend and web from your current checkout, run `make selfhost-build`; it uses local `multica-backend:dev` / `multica-web:dev` tags. Do not assume a fork-specific registry image is available.
 
 Once ready:
 
@@ -456,17 +460,9 @@ make selfhost-stop
 multica daemon stop
 ```
 
-## Switching to Multica Cloud
+## Switching Instances
 
-If you've been self-hosting and want to switch your CLI to [Multica Cloud](https://multica.ai):
-
-```bash
-multica setup
-```
-
-This reconfigures the CLI for multica.ai, re-authenticates, and restarts the daemon. You will be prompted before overwriting the existing configuration.
-
-> Your local Docker services are unaffected. Stop them separately if you no longer need them.
+Run `multica setup self-host --server-url <backend-url> --app-url <frontend-url>` with your deployment's actual URLs. The command confirms configuration changes, authenticates, and restarts the daemon. Running `multica setup` without `self-host` selects the upstream cloud instead. Your local Docker services are unaffected.
 
 ## Upgrading
 
@@ -476,7 +472,7 @@ docker compose -f docker-compose.selfhost.yml up -d
 ```
 
 Pin `MULTICA_IMAGE_TAG` in `.env` to an exact version like `v0.2.4` if you want to stay on a specific release. Migrations run automatically on backend startup.
-If the selected GHCR tag has not been published yet, fall back to `make selfhost-build` or `docker compose -f docker-compose.selfhost.yml -f docker-compose.selfhost.build.yml up -d --build`.
+When building the fork locally, use `make selfhost-build` or `docker compose -f docker-compose.selfhost.yml -f docker-compose.selfhost.build.yml up -d --build`.
 
 > **Upgrading from `v0.3.4` to `v0.3.5+` fails with `refusing to drop legacy daily rollups: ...`?** That's migration `103`'s fail-closed guard: it requires `task_usage_hourly` to be seeded before the legacy daily rollups are dropped. As of MUL-2957 `migrate up` runs that backfill automatically right before applying `103`, so the upgrade completes in a single invocation. If you are still on a pre-MUL-2957 binary or the auto-hook fails, run `backfill_task_usage_hourly` manually first, then re-run the upgrade. Full instructions in [Advanced Configuration → Usage Dashboard Rollup](SELF_HOSTING_ADVANCED.md#usage-dashboard-rollup).
 

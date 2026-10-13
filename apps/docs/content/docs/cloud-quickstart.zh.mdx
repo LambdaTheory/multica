@@ -9,9 +9,13 @@ import { Callout } from "fumadocs-ui/components/callout";
 智能体执行前，运行它的电脑上需要有至少一款已安装并登录的[支持的 AI 编程工具](/providers)，例如 Claude Code、Codex 或 Cursor。Multica 不自带这些工具。
 </Callout>
 
+## 开始前
+
+先部署一个 Multica 实例。自托管部署请按[自托管快速上手](/self-host-quickstart)操作，并使用你所部署实例的 Web 地址。以下步骤介绍登录可用实例后的通用流程。
+
 ## 1. 登录，进入工作区
 
-用 Web（[multica.ai](https://multica.ai)）或 [Multica Desktop](https://multica.ai/download) 登录，支持邮箱验证码和 Google。
+登录你的 Multica 实例。可用的登录方式取决于该实例的配置。
 
 - **Desktop**：可以自动连接这台电脑。
 - **Web**：需要在下一步通过命令行连接。
@@ -21,30 +25,30 @@ import { Callout } from "fumadocs-ui/components/callout";
 智能体在你连接的电脑上执行工作。打开侧边栏底部的 **配置 → 运行时**：
 
 - **用 Desktop**：Desktop 会自动把这台电脑注册为运行时，并检测已安装的 AI 编程工具。刚安装的工具，点"刷新"重新检测。
-- **用 Web，或需要添加另一台电脑**：点右上角的 **添加电脑**，在目标电脑的终端里运行弹窗给出的两条命令：
+- **用 Web，或需要添加另一台电脑**：点右上角的 **添加电脑**，在目标电脑的终端里运行弹窗给出的两条命令。弹窗里显示的是已填好你实例地址的 setup 命令，优先从那里复制。通用形式如下：
 
  **macOS / Linux**
 
  ```bash
  curl -fsSL https://raw.githubusercontent.com/multica-ai/multica/main/scripts/install.sh | bash
- multica setup
+ multica setup self-host --server-url <backend-url> --app-url <frontend-url>
  ```
 
  **Windows PowerShell**
 
  ```powershell
  irm https://raw.githubusercontent.com/multica-ai/multica/main/scripts/install.ps1 | iex
- multica setup
+ multica setup self-host --server-url <backend-url> --app-url <frontend-url>
  ```
 
- `multica setup` 会打开浏览器完成登录，然后让守护进程在后台运行。守护进程上线后，弹窗通常在一分钟内自动检测到这台电脑。
+ 把 `<backend-url>` 和 `<frontend-url>` 替换为你部署实例的后端和前端地址。`multica setup self-host` 会打开浏览器完成登录，然后让守护进程在后台运行。守护进程上线后，弹窗通常在一分钟内自动检测到这台电脑。
 
 **成功标志**：运行时列表里出现一台在线的电脑。
 
 ![Add a computer 弹窗：两条命令与等待检测提示](/images/docs/quickstart-add-computer.webp)
 
 <Callout type="info">
-自托管实例的连接命令略有不同，见[自托管快速上手](/self-host-quickstart)。
+直接运行 `multica setup`（不带 `self-host` 子命令）会把 CLI 配置为连接官方云 multica.ai，自托管实例不走这条路径——按上文使用 `multica setup self-host` 并带上你部署实例的地址。
 </Callout>
 
 ## 3. 创建一个智能体
@@ -82,7 +86,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 | 现象 | 先检查什么 |
 |---|---|
-| 没有找到运行时 | 确认 AI 编程工具已经安装并能在终端中运行。Desktop 点"刷新"；CLI 方式重新运行 `multica setup`。 |
+| 没有找到运行时 | 确认 AI 编程工具已经安装并能在终端中运行。Desktop 点"刷新"；CLI 方式用原来的地址重新运行 `multica setup self-host`。 |
 | 运行时显示离线 | Desktop 保持打开；CLI 方式运行 `multica daemon status`，未启动时运行 `multica daemon start`。 |
 | 任务一直排队 | 确认智能体使用的运行时在线。运行时达到并发上限时，新运行会继续排队。 |
 

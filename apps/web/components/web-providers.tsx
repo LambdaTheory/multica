@@ -45,6 +45,11 @@ function deriveWsUrl(): string | undefined {
 const WEB_VERSION =
   process.env.NEXT_PUBLIC_APP_VERSION || packageJson.version || "dev";
 
+// Build-time analytics opt-in. Default (unset or anything but "true") keeps
+// product analytics fully off — core then never initializes the SDK even if
+// the backend advertises a key. Deployment docs own how to flip this.
+const ANALYTICS_ENABLED = process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === "true";
+
 export function WebProviders({
   children,
   locale,
@@ -72,6 +77,7 @@ export function WebProviders({
       apiBaseUrl={apiBaseUrl}
       wsUrl={wsUrl || deriveWsUrl()}
       cookieAuth={cookieAuth}
+      analyticsEnabled={ANALYTICS_ENABLED}
       onLogin={setLoggedInCookie}
       onLogout={() => {
         // welcome-store holds the transient post-onboarding signal. Must

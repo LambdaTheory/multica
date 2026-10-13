@@ -49,6 +49,8 @@ MULTICA_PUBLIC_URL=https://api.multica.example.com
 
 在 Kubernetes 中设置 shutdown hold 时，`terminationGracePeriodSeconds` 要大于 hold 与实际退出所需时间之和。
 
+`MULTICA_BILLING_ENABLED` 是部署级商业功能总开关，只有 `true` 和 `1` 会启用。关闭时，账单 UI、商业 API、商业任务自动化配额和席位控制均停用；不影响 Cloud runtime 或 PAT 认证，不会取消已有上游订阅，也不会删除数据。关闭期间 Stripe webhook 返回非成功响应，可能触发重试；切换前应处理未完成的结算。该配置在启动时读取，修改后需重启 API。现有 `FF_BILLING_WORKSPACE_SUBSCRIPTIONS` 仍是工作区订阅子开关。
+
 主库与从库的连接上限彼此独立，需要按全部 API 进程的连接数总和预留 PostgreSQL 集群连接额度。从库连接默认五分钟回收一次，以便在提升后重新校验只读状态。从库连接失败时，基础设施会透明回退主库并短暂打开被动熔断器，不会增加后台数据库探测。应用不保证从库数据的最大陈旧时间；请在数据库层监控复制延迟，一致性敏感的读取继续走主库。
 
 ## 对外地址与浏览器访问
@@ -307,16 +309,18 @@ multica config show
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
-| `DO_NOT_TRACK` | 空（默认开启遥测） | 设为 `1` 或 `true`（不区分大小写）后，停止首方匿名自托管遥测的采集与发送 |
-| `ANALYTICS_DISABLED` | `false` | 设为 `true` 关闭 PostHog 上报 |
+| `DO_NOT_TRACK` | `true` | 默认关闭自托管部署快照；仅显式设为 `false` 或 `0` 时启用 |
+| `ANALYTICS_DISABLED` | `true` | 默认关闭服务端 PostHog；显式设为 `false` 或 `0` 且提供 `POSTHOG_API_KEY` 时启用 |
+| `MULTICA_BILLING_ENABLED` | `false` | 商业计费功能总开关；仅设为 `true` 或 `1` 时启用，修改后需重启 API |
+| `FF_BILLING_WORKSPACE_SUBSCRIPTIONS` | `false` | 工作区订阅子开关；只有总开关启用后才生效 |
 | `POSTHOG_API_KEY` | 空 | 不设置时统计上报关闭；接入自己的 PostHog 项目时填写 |
 | `POSTHOG_HOST` | `https://us.i.posthog.com` | PostHog 地址 |
 | `METRICS_ADDR` | 空 | Prometheus metrics 监听地址；空表示不启动 |
 | `REALTIME_METRICS_TOKEN` | 空 | 保护 `/health/realtime` 的 bearer token |
 
-首方自托管遥测每天按 UTC 发送一份部署级快照，固定且不可配置的地址为 `https://telemetry.multica.ai/v1/telemetry/events`。快照只包含正式发布版本、工作区数/去重成员数/活跃智能体数/过去 24 小时活跃守护进程数的分桶，以及过去 24 小时运行的开始、完成、失败和取消总数。不会发送名称、邮箱或域名、IP、业务标识符、主机或设备信息、代码仓库、模型或 plugin、prompt/output、评论或聊天、文件路径、token/费用、凭据、错误文本、stack 或日志。此数据只用于了解自托管版本采用、部署规模区间与聚合使用量，不用于计费、授权、认证或安全决策。
+显式启用后，首方自托管遥测每天按 UTC 发送一份部署级快照，固定且不可配置的地址为 `https://telemetry.multica.ai/v1/telemetry/events`。快照包含部署实例标识 `instance_id`、快照日期、正式发布版本、工作区数/去重成员数/活跃智能体数/过去 24 小时活跃守护进程数的分桶，以及过去 24 小时运行的开始、完成、失败和取消总数。不会发送名称、邮箱或域名、IP、业务标识符、主机或设备信息、代码仓库、模型或 plugin、prompt/output、评论或聊天、文件路径、token/费用、凭据、错误文本、stack 或日志。此数据只用于了解自托管版本采用、部署规模区间与聚合使用量，不用于计费、授权、认证或安全决策。
 
-`DO_NOT_TRACK` 与 `ANALYTICS_DISABLED` 相互独立：前者控制这份首方匿名快照，后者控制可选的 PostHog 集成。
+`DO_NOT_TRACK` 与 `ANALYTICS_DISABLED` 相互独立：前者控制这份首方匿名快照，后者控制可选的服务端 PostHog 集成。Web 与 Desktop SDK 是独立的构建时 opt-in（Web 使用 `NEXT_PUBLIC_ANALYTICS_ENABLED=true`，Desktop 使用 `VITE_ANALYTICS_ENABLED=true`），并且还要求后端允许分析。默认客户端设置下，即使连接允许分析的后端也不会上报。此策略不影响本地日志与 Prometheus metrics。
 
 ## 接下来
 

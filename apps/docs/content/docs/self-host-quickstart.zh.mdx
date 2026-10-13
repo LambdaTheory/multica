@@ -7,14 +7,16 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 自托管 Multica 分成两部分：
 
+> **Fork 镜像：**上游发布镜像不包含本 fork 的改动。请在本仓库目录运行 `make selfhost-build` 构建后端与前端镜像。
+
 | 部分 | 运行什么 | 放在哪里 |
 |---|---|---|
 | **Multica 服务** | Web、API 和 PostgreSQL | 一台安装了 Docker 的机器 |
 | **执行电脑** | Multica 守护进程和 AI 编程工具 | 开发者实际工作的电脑 |
 
-它们可以是同一台机器，也可以分开。自托管替换的只是 Multica Cloud 部分。
+它们可以是同一台机器，也可以分开；根据部署环境选择即可。
 
-这篇文档使用 Docker Compose。Kubernetes 部署见仓库中的 [Self-hosting guide](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative)。
+这篇文档使用 Docker Compose。Kubernetes 部署见仓库中的 [Self-hosting guide](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative)。
 
 ## 开始前
 
@@ -40,30 +42,23 @@ Multica 使用 Compose v2，也就是 `docker compose`。旧版的 `docker-compo
 在准备运行服务的机器上执行：
 
 ```bash
-git clone --depth 1 https://github.com/multica-ai/multica.git
+git clone --depth 1 https://github.com/LambdaTheory/multica.git
 cd multica
-make selfhost
+make selfhost-build
 ```
 
-第一次运行时，`make selfhost` 会：
+第一次运行时，`make selfhost-build` 会：
 
 1. 从 `.env.example` 创建 `.env`
 2. 随机生成 `JWT_SECRET`、PostgreSQL 密码和 `MULTICA_VCS_SECRET_KEY`（自托管 Git 集成的加密密钥）
-3. 拉取 PostgreSQL、Multica backend 和 Multica frontend 镜像
+3. 拉取 PostgreSQL 镜像，并从此 checkout 构建 Multica backend 和 frontend 镜像
 4. 创建持久化数据卷并启动三个容器
 5. 等待 backend 开始响应健康检查
 
-之后再次运行 `make selfhost` 会继续使用现有的 `.env` 和数据卷，不会重新生成密钥。
+之后再次运行 `make selfhost-build` 会继续使用现有的 `.env` 和数据卷，不会重新生成密钥。
 
 <Callout type="info">
-`make selfhost` 拉取已发布的镜像，不会编译当前 checkout 中的代码。需要测试本地源码时，使用 `make selfhost-build`。
-
-已发布的镜像跟随最新的 **release tag**，而直接 `git clone` 检出的是 `main`，通常领先于发版。如果你要在这个 checkout 上构建任何东西——CLI，或通过 `make selfhost-build` 构建镜像——先切换到与镜像对应的 release tag，让构建产物和运行中的容器保持同一版本：
-
-```bash
-git fetch --tags --depth 1
-git checkout $(git tag -l 'v*' --sort=-v:refname | head -1)
-```
+使用 `make selfhost-build` 从当前 checkout 构建镜像。本 fork 没有专用的发布镜像；若从上游拉取已发布镜像，它们不包含本 fork 的改动。
 </Callout>
 
 ## 2. 确认服务已经就绪
@@ -366,7 +361,7 @@ curl -s localhost:8080/readyz
 
 Helm 有自己的升级路径：在 values 文件里把 `images.backend.tag` / `images.frontend.tag` 设成你要的版本，然后 `helm upgrade`。改 tag 就改了 pod spec，Kubernetes 会拉新镜像并滚动更新——这是可靠的路径。
 
-`kubectl -n multica rollout restart` 本身**不是**升级。chart 默认 `pullPolicy: IfNotPresent`（`deploy/helm/multica/values.yaml`），节点上已经缓存过这个 tag 的话，restart 只会用回旧镜像，什么都没变——和钉死 `MULTICA_IMAGE_TAG` 是同一类坑。真要靠浮动 tag 走这条路，得先把 `images.backend.pullPolicy` / `images.frontend.pullPolicy` 设成 `Always`。详见仓库的 [Self-hosting guide](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative)。
+`kubectl -n multica rollout restart` 本身**不是**升级。chart 默认 `pullPolicy: IfNotPresent`（`deploy/helm/multica/values.yaml`），节点上已经缓存过这个 tag 的话，restart 只会用回旧镜像，什么都没变——和钉死 `MULTICA_IMAGE_TAG` 是同一类坑。真要靠浮动 tag 走这条路，得先把 `images.backend.pullPolicy` / `images.frontend.pullPolicy` 设成 `Always`。详见仓库的 [Self-hosting guide](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative)。
 
 <Callout type="warning">
 `docker compose down` 会保留 `pgdata` 和 `backend_uploads`。加上 `-v` 会删除这些数据卷，包括数据库；除非确定要清空实例，否则不要运行 `docker compose down -v`。
@@ -388,5 +383,5 @@ Helm 有自己的升级路径：在 values 文件里把 `images.backend.tag` / `
 
 - [登录与注册配置](/auth-setup) — 配置邮件、Google 登录和注册范围。
 - [环境变量](/environment-variables) — 查看完整的服务端配置。
-- [Self-hosting guide](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md) — Kubernetes、升级和手动部署。
+- [Self-hosting guide](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md) — Kubernetes、升级和手动部署。
 - [桌面应用](/desktop-app) — 让 Desktop 连接自托管服务。

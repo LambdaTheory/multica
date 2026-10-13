@@ -43,6 +43,9 @@ import type {
   BillingTopup,
   BillingTransaction,
 } from "@multica/core/types";
+import { BILLING_ENABLED_FLAG } from "@multica/core/feature-flags";
+import { useFeatureEnabled } from "@multica/core/config";
+import { paths } from "@multica/core/paths";
 import { Button } from "@multica/ui/components/ui/button";
 import {
   Card,
@@ -64,10 +67,29 @@ export function BillingTestPage() {
   const { t } = useT("billing");
   const { searchParams, replace, pathname } = useNavigation();
 
+  // Account billing does not depend on the workspace-subscription child flag.
+  const billingEnabled = useFeatureEnabled(BILLING_ENABLED_FLAG, false);
+
   // The Stripe success URL on the cloud side has the literal
   // {CHECKOUT_SESSION_ID} placeholder which Stripe substitutes before
   // redirecting the browser. So when we land here, the param is real.
   const sessionId = searchParams.get("session_id") ?? "";
+
+  if (!billingEnabled) {
+    return (
+      <div className="space-y-4 p-6" role="status">
+        <h1 className="text-title-lg font-semibold">
+          {t(($) => $.return_page.billing_disabled_title)}
+        </h1>
+        <p className="text-body text-muted-foreground">
+          {t(($) => $.return_page.billing_disabled_description)}
+        </p>
+        <Button onClick={() => replace(paths.root())}>
+          {t(($) => $.return_page.go_to_app)}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">

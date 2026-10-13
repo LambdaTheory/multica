@@ -124,7 +124,9 @@ func (h *Handler) GetConfig(w http.ResponseWriter, r *http.Request) {
 	config.CdnSigned = h.CFSigner != nil
 	config.DaemonServerURL, config.DaemonAppURL = daemonSetupURLsFromEnv()
 	config.VCSIntegrationAvailable = h.cfg.VCSIntegrationEnabled
-	config.FeatureFlags = featureflags.EvaluateFrontendPublicFlags(r.Context(), h.FeatureFlags)
+	// Same startup-parsed switch the billing guards read: the public decision
+	// and the server-side enforcement can never disagree.
+	config.FeatureFlags = featureflags.EvaluateFrontendPublicFlags(r.Context(), h.FeatureFlags, h.cfg.BillingEnabled)
 	// Only surface the build version on self-hosted deployments. The managed
 	// cloud is continuously deployed and its users can't choose the build, so
 	// the Help popover's version row would just be noise there (MUL-4108).
@@ -132,9 +134,11 @@ func (h *Handler) GetConfig(w http.ResponseWriter, r *http.Request) {
 		config.ServerVersion = h.cfg.ServerVersion
 	}
 
-	// Re-read from env on every request so operators can rotate keys via
-	// secret refresh without a server restart.
-	if v := os.Getenv("ANALYTICS_DISABLED"); v != "true" && v != "1" {
+	// Same judgment analytics.NewFromEnv applies at startup: analytics is off
+	// unless the operator explicitly opted in (ANALYTICS_DISABLED=false/0) and
+	// configured an API key. When disabled no PostHog key is published, so
+	// clients never initialize event shipping either.
+	if analytics.EnabledFromEnv() {
 		config.PosthogKey = os.Getenv("POSTHOG_API_KEY")
 		config.PosthogHost = os.Getenv("POSTHOG_HOST")
 		config.AnalyticsEnvironment = analytics.EnvironmentFromEnv()

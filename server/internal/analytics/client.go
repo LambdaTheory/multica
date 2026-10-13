@@ -8,8 +8,9 @@
 //     worker flushes to PostHog in batches.
 //   - When the queue is full events are dropped (and counted). A broken
 //     analytics backend must never degrade the product.
-//   - When POSTHOG_API_KEY is empty the package runs a no-op client, which
-//     keeps local dev and self-hosted instances friction-free.
+//   - Analytics is off by default: only ANALYTICS_DISABLED=false/0 combined
+//     with a POSTHOG_API_KEY enables shipping. Everything else runs a no-op
+//     client.
 package analytics
 
 import (
@@ -65,21 +66,21 @@ type Client interface {
 
 // NewFromEnv returns a Client configured from environment variables:
 //
-//   - POSTHOG_API_KEY: project API key. Empty → no-op client.
+//   - ANALYTICS_DISABLED: analytics is off by default. Only an explicit
+//     "false"/"0" opts the deployment in (see EnabledFromEnv).
+//   - POSTHOG_API_KEY: project API key. Empty → no-op client, even when the
+//     opt-in above is present.
 //   - POSTHOG_HOST:    API host (default https://us.i.posthog.com).
 //   - ANALYTICS_ENVIRONMENT: production/staging/dev. Defaults from APP_ENV.
-//   - ANALYTICS_DISABLED: set to "true"/"1" to force a no-op client even
-//     when POSTHOG_API_KEY is set (useful for CI and self-hosted opt-out).
+//
+// EnabledFromEnv is the single source of truth for the switch; /api/config
+// shares it so the published PostHog key and the actual client never disagree.
 func NewFromEnv() Client {
-	if isDisabled() {
-		slog.Info("analytics disabled via ANALYTICS_DISABLED")
+	if !EnabledFromEnv() {
+		slog.Info("analytics disabled (default off; set ANALYTICS_DISABLED=false or 0 with POSTHOG_API_KEY to enable)")
 		return NoopClient{}
 	}
 	key := os.Getenv("POSTHOG_API_KEY")
-	if key == "" {
-		slog.Info("analytics: POSTHOG_API_KEY not set, using noop client")
-		return NoopClient{}
-	}
 	host := os.Getenv("POSTHOG_HOST")
 	if host == "" {
 		host = "https://us.i.posthog.com"
@@ -92,9 +93,22 @@ func NewFromEnv() Client {
 	})
 }
 
-func isDisabled() bool {
-	v := os.Getenv("ANALYTICS_DISABLED")
-	return v == "true" || v == "1"
+// EnabledFromEnv reports whether product analytics may run: ANALYTICS_DISABLED
+// must be explicitly "false" or "0" (case-insensitive, trimmed) AND
+// POSTHOG_API_KEY must be set. Shared with the /api/config handler so it
+// withholds the PostHog key on exactly the deployments where this client is a
+// no-op.
+func EnabledFromEnv() bool {
+	key := os.Getenv("POSTHOG_API_KEY")
+	if strings.TrimSpace(key) == "" {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("ANALYTICS_DISABLED"))) {
+	case "false", "0":
+		return true
+	default:
+		return false
+	}
 }
 
 func EnvironmentFromEnv() string {

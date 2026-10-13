@@ -9,9 +9,13 @@ import { Callout } from "fumadocs-ui/components/callout";
 エージェントが実行するには、実行するコンピュータに Claude Code、Codex、Cursor などの[サポートされている AI コーディングツール](/providers)が少なくとも 1 つインストールされ、ログイン済みである必要があります。Multica にこれらのツールは同梱されていません。
 </Callout>
 
+## 始める前に
+
+まず Multica インスタンスをデプロイしてください。セルフホストする場合は[セルフホストクイックスタート](/self-host-quickstart)に従い、デプロイ先の Web アドレスを使います。以下では、利用可能なインスタンスにログインした後の一般的な手順を説明します。
+
 ## 1. ログインしてワークスペースに入る
 
-Web（[multica.ai](https://multica.ai)）または [Multica Desktop](https://multica.ai/download) でログインします。メール認証コードと Google に対応しています。
+Multica インスタンスにログインします。利用可能なログイン方法はインスタンスの設定によって異なります。
 
 - **Desktop**：このコンピュータを自動で接続できます。
 - **Web**：次のステップでコマンドラインから接続します。
@@ -21,30 +25,30 @@ Web（[multica.ai](https://multica.ai)）または [Multica Desktop](https://mul
 エージェントは接続されたコンピュータ上で作業を実行します。サイドバー下部の **設定 → ランタイム** を開きます。
 
 - **Desktop の場合**：Desktop がこのコンピュータをランタイムとして自動登録し、インストール済みの AI コーディングツールを検出します。インストールしたばかりのツールは、「更新」をクリックして再検出します。
-- **Web の場合、または別のコンピュータを追加する場合**：右上の **コンピュータを追加** をクリックし、ダイアログに表示される 2 つのコマンドを対象コンピュータのターミナルで実行します。
+- **Web の場合、または別のコンピュータを追加する場合**：右上の **コンピュータを追加** をクリックし、ダイアログに表示される 2 つのコマンドを対象コンピュータのターミナルで実行します。ダイアログにはインスタンスのアドレスが埋め込まれた setup コマンドが表示されるため、そこからコピーするのが確実です。一般的な形は次のとおりです。
 
   **macOS / Linux**
 
   ```bash
   curl -fsSL https://raw.githubusercontent.com/multica-ai/multica/main/scripts/install.sh | bash
-  multica setup
+  multica setup self-host --server-url <backend-url> --app-url <frontend-url>
   ```
 
   **Windows PowerShell**
 
   ```powershell
   irm https://raw.githubusercontent.com/multica-ai/multica/main/scripts/install.ps1 | iex
-  multica setup
+  multica setup self-host --server-url <backend-url> --app-url <frontend-url>
   ```
 
-  `multica setup` はブラウザを開いてログインを完了し、その後デーモンをバックグラウンドで実行し続けます。デーモンがオンラインになると、通常 1 分以内にダイアログがこのコンピュータを検出します。
+  `<backend-url>` と `<frontend-url>` は、デプロイしたインスタンスのバックエンドとフロントエンドのアドレスに置き換えます。`multica setup self-host` はブラウザを開いてログインを完了し、その後デーモンをバックグラウンドで実行し続けます。デーモンがオンラインになると、通常 1 分以内にダイアログがこのコンピュータを検出します。
 
 **成功の目安**：ランタイム一覧にオンラインのコンピュータが表示されます。
 
 ![「コンピュータを追加」ダイアログ：2 つのコマンドと検出待ちの案内](/images/docs/quickstart-add-computer.webp)
 
 <Callout type="info">
-セルフホストインスタンスでは接続コマンドが少し異なります。[セルフホストクイックスタート](/self-host-quickstart)を参照してください。
+サブコマンドなしの `multica setup` は、CLI を Multica Cloud（multica.ai）に接続する設定になります。セルフホストインスタンスではこの方法は使わず、上記のように `multica setup self-host` とデプロイ先のアドレスを使用してください。
 </Callout>
 
 ## 3. エージェントを作成する
@@ -82,7 +86,7 @@ Web（[multica.ai](https://multica.ai)）または [Multica Desktop](https://mul
 
 | 症状 | まず確認すること |
 |---|---|
-| ランタイムが見つからない | AI コーディングツールがインストール済みで、ターミナルから実行できることを確認します。Desktop では「更新」をクリックし、CLI の場合は `multica setup` を再実行します。 |
+| ランタイムが見つからない | AI コーディングツールがインストール済みで、ターミナルから実行できることを確認します。Desktop では「更新」をクリックし、CLI の場合は以前と同じアドレスで `multica setup self-host` を再実行します。 |
 | ランタイムがオフラインと表示される | Desktop を開いたままにします。CLI の場合は `multica daemon status` を実行し、起動していなければ `multica daemon start` を実行します。 |
 | タスクがキューに入ったまま | エージェントが使うランタイムがオンラインであることを確認します。ランタイムが同時実行の上限に達している場合、新しい実行はキューで待機し続けます。 |
 

@@ -10,12 +10,14 @@ vi.mock("posthog-js", () => {
     identify: vi.fn(),
     capture: vi.fn(),
     captureException: vi.fn(),
+    opt_in_capturing: vi.fn(),
+    opt_out_capturing: vi.fn(),
   };
   return { default: mock };
 });
 
-// Re-import per test so module-level `initialized` / cached super-props
-// don't leak between cases.
+// Re-import per test so module-level `enabled` / `initialized` / cached
+// super-props don't leak between cases.
 async function loadModule() {
   vi.resetModules();
   const analytics = await import("./index");
@@ -23,12 +25,20 @@ async function loadModule() {
     init: ReturnType<typeof vi.fn>;
     register: ReturnType<typeof vi.fn>;
     reset: ReturnType<typeof vi.fn>;
+    capture: ReturnType<typeof vi.fn>;
     captureException: ReturnType<typeof vi.fn>;
+    identify: ReturnType<typeof vi.fn>;
+    opt_in_capturing: ReturnType<typeof vi.fn>;
+    opt_out_capturing: ReturnType<typeof vi.fn>;
   };
   posthog.init.mockClear();
   posthog.register.mockClear();
   posthog.reset.mockClear();
+  posthog.capture.mockClear();
   posthog.captureException.mockClear();
+  posthog.identify.mockClear();
+  posthog.opt_in_capturing.mockClear();
+  posthog.opt_out_capturing.mockClear();
   return { analytics, posthog };
 }
 
@@ -41,9 +51,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// Explicit opt-in — the host app must call setAnalyticsEnabled(true) (web:
+// NEXT_PUBLIC_ANALYTICS_ENABLED, desktop: VITE_ANALYTICS_ENABLED) before any
+// of the capture paths can run. Every test below that expects traffic opts in
+// first; the default-disabled regressions live in their own describe.
 describe("initAnalytics super-properties", () => {
   it("registers client_type and app_version after posthog.init", async () => {
     const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
     analytics.initAnalytics({ key: "k", host: "", appVersion: "1.2.3" });
     expect(posthog.register).toHaveBeenCalledWith({
       client_type: "web",
@@ -56,6 +71,7 @@ describe("initAnalytics super-properties", () => {
 
   it("omits app_version when not provided", async () => {
     const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
     analytics.initAnalytics({ key: "k", host: "" });
     expect(posthog.register).toHaveBeenCalledWith({
       client_type: "web",
@@ -68,6 +84,7 @@ describe("initAnalytics super-properties", () => {
   it("detects desktop when window.electron is present", async () => {
     vi.stubGlobal("window", { electron: {} });
     const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
     analytics.initAnalytics({ key: "k", host: "" });
     expect(posthog.register).toHaveBeenCalledWith({
       client_type: "desktop",
@@ -78,9 +95,121 @@ describe("initAnalytics super-properties", () => {
   });
 });
 
+describe("default-off gate", () => {
+  it("never initializes the SDK even when the backend advertises a key", async () => {
+    const { analytics, posthog } = await loadModule();
+    expect(analytics.initAnalytics({ key: "remote-key", host: "" })).toBe(
+      false,
+    );
+    expect(posthog.init).not.toHaveBeenCalled();
+    expect(posthog.register).not.toHaveBeenCalled();
+  });
+
+  it("captureEvent does not buffer before init and never sends", async () => {
+    const { analytics, posthog } = await loadModule();
+    analytics.captureEvent("step_transition", { step: 3 });
+    // Enabling afterwards must not resurrect the dropped event.
+    analytics.setAnalyticsEnabled(true);
+    analytics.initAnalytics({ key: "k", host: "" });
+    expect(posthog.capture).not.toHaveBeenCalled();
+  });
+
+  it("identify is a hard no-op: nothing buffered, nothing sent on init", async () => {
+    const { analytics, posthog } = await loadModule();
+    analytics.identify("user-1", { email: "a@b.c" });
+    analytics.setAnalyticsEnabled(true);
+    analytics.initAnalytics({ key: "k", host: "" });
+    expect(posthog.identify).not.toHaveBeenCalled();
+  });
+
+  it("captureException is dropped without buffering", async () => {
+    const { analytics, posthog } = await loadModule();
+    analytics.captureException(new Error("boom"));
+    analytics.setAnalyticsEnabled(true);
+    analytics.initAnalytics({ key: "k", host: "" });
+    expect(posthog.captureException).not.toHaveBeenCalled();
+  });
+
+  it("captureSignupSource writes no attribution cookie when disabled", async () => {
+    const { analytics } = await loadModule();
+    vi.stubGlobal("document", { cookie: "" });
+    try {
+      Object.defineProperty(window, "location", {
+        value: new URL("https://app.example.com/?utm_source=reddit"),
+        writable: true,
+      });
+      analytics.captureSignupSource();
+      expect(document.cookie).toBe("");
+      // Even after enabling, the write happens at call time only — a later
+      // opt-in must not retroactively stamp attribution for this page load.
+      analytics.setAnalyticsEnabled(true);
+      expect(document.cookie).toBe("");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe("setAnalyticsEnabled", () => {
+  it("disabling after init drops pending entries and stops SDK collection", async () => {
+    const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
+    analytics.initAnalytics({ key: "k", host: "" });
+
+    // Buffer a pre-init... no — already initialized. Buffer via disable →
+    // enable → capture before re-init is covered elsewhere; here verify the
+    // disable path itself.
+    analytics.setAnalyticsEnabled(false);
+    expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1);
+
+    // Capture after disable is a no-op even though the SDK is initialized.
+    analytics.captureEvent("late_event");
+    expect(posthog.capture).not.toHaveBeenCalled();
+  });
+
+  it("disabling before init clears buffered pre-init entries", async () => {
+    const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
+    analytics.captureEvent("queued_event");
+    analytics.identify("user-1");
+
+    analytics.setAnalyticsEnabled(false);
+    analytics.setAnalyticsEnabled(true);
+    analytics.initAnalytics({ key: "k", host: "" });
+
+    // The buffered entries were dropped by the disable, not replayed.
+    expect(posthog.capture).not.toHaveBeenCalled();
+    expect(posthog.identify).not.toHaveBeenCalled();
+  });
+
+  it("re-enabling restores SDK collection on an initialized instance", async () => {
+    const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
+    analytics.initAnalytics({ key: "k", host: "" });
+    analytics.setAnalyticsEnabled(false);
+    analytics.setAnalyticsEnabled(true);
+
+    expect(posthog.opt_in_capturing).toHaveBeenCalledTimes(1);
+    analytics.captureEvent("back_online");
+    expect(posthog.capture).toHaveBeenCalledWith(
+      "back_online",
+      expect.any(Object),
+      undefined,
+    );
+  });
+
+  it("disabling on an uninitialized instance is a no-op on the SDK", async () => {
+    const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
+    analytics.setAnalyticsEnabled(false);
+    expect(posthog.opt_out_capturing).not.toHaveBeenCalled();
+  });
+});
+
 describe("resetAnalytics", () => {
   it("re-registers super-properties after reset so subsequent events keep client_type", async () => {
     const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
     analytics.initAnalytics({ key: "k", host: "", appVersion: "1.2.3" });
     posthog.register.mockClear();
 
@@ -100,6 +229,7 @@ describe("resetAnalytics", () => {
 
   it("is a no-op when analytics was never initialized", async () => {
     const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
     analytics.resetAnalytics();
     expect(posthog.reset).not.toHaveBeenCalled();
     expect(posthog.register).not.toHaveBeenCalled();
@@ -110,6 +240,7 @@ describe("captureException", () => {
   it("buffers a pre-init exception and flushes it on init", async () => {
     const { analytics, posthog } = await loadModule();
     const err = new Error("boom");
+    analytics.setAnalyticsEnabled(true);
 
     // Before init: buffered, nothing sent yet.
     analytics.captureException(err, { source: "global-error" });
@@ -126,6 +257,7 @@ describe("captureException", () => {
 
   it("sends immediately once initialized", async () => {
     const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
     analytics.initAnalytics({ key: "k", host: "" });
     posthog.captureException.mockClear();
 
@@ -185,6 +317,7 @@ describe("before_send $exception pipeline", () => {
 
   it("redacts the message, then drops repeats past the per-fingerprint limit", async () => {
     const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
     analytics.initAnalytics({ key: "k", host: "" });
     const beforeSend = getBeforeSend(posthog);
 
@@ -200,6 +333,7 @@ describe("before_send $exception pipeline", () => {
 
   it("passes non-$exception events through untouched", async () => {
     const { analytics, posthog } = await loadModule();
+    analytics.setAnalyticsEnabled(true);
     analytics.initAnalytics({ key: "k", host: "" });
     const beforeSend = getBeforeSend(posthog);
 

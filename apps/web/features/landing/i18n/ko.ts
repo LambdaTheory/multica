@@ -1,4 +1,4 @@
-import { githubUrl, discordUrl } from "../components/shared";
+import { githubUrl } from "../components/shared";
 import { createEnDict } from "./en";
 import type { LandingDict } from "./types";
 
@@ -26,9 +26,8 @@ export function createKoDict(
       headlineLine2: "사람이 아닐지도 모릅니다.",
       subheading:
         "Multica는 코딩 AI 에이전트를 진짜 팀원으로 만들어 주는 소스 공개 플랫폼입니다. 태스크를 맡기고, 진행 상황을 따라가고, 반복되는 노하우를 스킬로 쌓아 두세요. 사람과 AI 에이전트로 이루어진 팀을 한곳에서 관리할 수 있습니다.",
-      cta: "무료로 시작하기",
+      cta: "시작하기",
       downloadDesktop: "데스크톱 다운로드",
-      talkToSales: "영업팀에 문의",
       worksWith: "20개 이상의 AI 코딩 도구 지원",
       imageAlt: "사람과 AI 에이전트가 함께 태스크를 관리하는 Multica 보드 화면",
     },
@@ -165,7 +164,7 @@ export function createKoDict(
       headlineLine2: "여러분의 방식대로.",
       description:
         "Multica의 소스 코드는 공개되어 있습니다. 코드를 직접 들여다보고, 무료로 셀프 호스팅하고, 사람과 AI 에이전트가 함께 일하는 방식을 같이 만들어 갈 수 있습니다. Multica를 다른 사람에게 호스팅 서비스로 제공하려면 상용 라이선스가 필요합니다.",
-      cta: "GitHub에서 스타 누르기",
+      cta: "GitHub에서 보기",
       licensingCta: "라이선스 안내 →",
       highlights: [
         {
@@ -251,8 +250,6 @@ export function createKoDict(
           links: [
             { label: "문서", href: docsHref },
             { label: "API", href: githubUrl },
-            { label: "X (Twitter)", href: "https://x.com/MulticaAI" },
-            { label: "Discord", href: discordUrl },
           ],
         },
         company: {
@@ -261,7 +258,6 @@ export function createKoDict(
             { label: "소개", href: "/about" },
             { label: "라이선스", href: "/licensing" },
             { label: "개인정보 처리방침", href: "/privacy" },
-            { label: "영업팀 문의", href: "/contact-sales" },
             { label: "GitHub", href: githubUrl },
           ],
         },
@@ -3199,9 +3195,7 @@ export function createKoDict(
           "소스 코드가 공개되어 있고 셀프 호스팅도 가능하므로, Multica 위에 무언가를 만들기 전에 모든 코드를 직접 확인할 수 있습니다. 셀프 호스팅한 배포는 전부 여러분의 인프라에서 실행됩니다. 상업적 이용 방식은 [라이선스 안내](/licensing) 페이지에서 자세히 설명합니다.",
         ],
         contacts: [
-          { label: "상용 라이선스 및 영업", linkLabel: "영업팀 문의", href: "/contact-sales" },
           { label: "라이선스 안내", linkLabel: "라이선스 FAQ", href: "/licensing" },
-          { label: "커뮤니티 및 지원", linkLabel: "Discord", href: discordUrl },
           { label: "소스 코드 및 이슈", linkLabel: "GitHub", href: githubUrl },
         ],
       },
@@ -3273,12 +3267,6 @@ export function createKoDict(
             "출처 표시: Multica 인터페이스 없이 백엔드, 데몬, CLI를 기반으로 제품을 만든다면 저작권 및 NOTICE 정보를 유지하고, 사용자용 문서에 Multica를 기반으로 만들었다는 사실을 [GitHub 저장소](https://github.com/multica-ai/multica) 링크와 함께 밝혀 주세요.",
             "포크: 포크의 소스 코드를 공개하는 것 자체는 호스팅 서비스가 아니므로 상용 라이선스가 필요하지 않습니다. 다만 그 포크로 호스팅 서비스를 운영하는 사람은 각자 상용 라이선스를 받아야 합니다.",
             "상용 라이선스와 브랜딩 면제는 별개의 허가입니다. 하나를 받았다고 다른 하나가 포함되지는 않습니다.",
-          ],
-        },
-        {
-          heading: "상용 라이선스 받기",
-          paragraphs: [
-            "[영업팀 문의](/contact-sales)로 사용 사례를 알려 주시면 영업일 기준 3일 이내에 답변드립니다. 라이선스가 필요한지 잘 모르겠다면 [Discord](" + discordUrl + ")나 같은 양식으로 편하게 물어보세요.",
           ],
         },
       ],
@@ -3460,123 +3448,11 @@ export function createKoDict(
         copyLabel: "복사",
         copiedLabel: "복사했습니다",
       },
-      cloud: {
-        title: "클라우드 런타임 (대기자 명단)",
-        sub: "Multica가 런타임을 직접 호스팅해 드립니다. 아직 정식 출시 전입니다. 이메일을 남겨 주시면 준비되는 대로 알려드릴게요.",
-      },
       footer: {
         releaseNotes: "{version}의 새로운 내용",
         allReleases: "모든 릴리스 보기",
         currentVersion: "현재 버전: {version}",
         versionUnavailable: "버전을 확인할 수 없습니다. GitHub를 확인하세요.",
-      },
-    },
-    contactSales: {
-      pageTitle: "영업팀 문의",
-      pageDescription:
-        "회사에 사람과 에이전트가 함께 일하는 워크플로를 도입하는 방법을 Multica 팀과 함께 이야기해 보세요.",
-      eyebrow: "영업팀 문의",
-      title: "어떤 도움이 필요하신지 알려 주세요",
-      fields: {
-        firstName: "이름",
-        lastName: "성",
-        businessEmail: "비즈니스 이메일",
-        businessEmailHint:
-          "회사 이메일을 사용하세요. Gmail, Outlook 등 개인 이메일은 사용할 수 없습니다.",
-        companyName: "회사명",
-        companySize: "회사 규모",
-        countryRegion: "국가 / 지역",
-        useCase: "Multica를 어떻게 사용하거나 어디에 활용하실 계획인가요?",
-        goals: "목표 또는 현재 겪고 있는 과제",
-        selectPlaceholder: "선택하세요",
-        submit: "제출",
-        submitting: "제출 중...",
-      },
-      companySizes: [
-        { value: "1-10", label: "직원 1-10명" },
-        { value: "11-50", label: "직원 11-50명" },
-        { value: "51-200", label: "직원 51-200명" },
-        { value: "201-500", label: "직원 201-500명" },
-        { value: "501-1000", label: "직원 501-1,000명" },
-        { value: "1000+", label: "직원 1,000명 이상" },
-      ],
-      useCases: [
-        { value: "evaluate", label: "팀 도입을 검토 중" },
-        { value: "adopt_team", label: "팀 또는 회사에 Multica 도입" },
-        { value: "self_host", label: "자체 인프라에 셀프 호스팅" },
-        { value: "integrate", label: "기존 도구와 Multica 연동" },
-        { value: "partner", label: "파트너십 또는 리셀러 문의" },
-        { value: "other", label: "기타" },
-      ],
-      countries: [
-        "미국",
-        "캐나다",
-        "영국",
-        "독일",
-        "프랑스",
-        "네덜란드",
-        "스웨덴",
-        "스위스",
-        "스페인",
-        "이탈리아",
-        "아일랜드",
-        "노르웨이",
-        "덴마크",
-        "핀란드",
-        "벨기에",
-        "포르투갈",
-        "호주",
-        "뉴질랜드",
-        "일본",
-        "대한민국",
-        "싱가포르",
-        "홍콩 특별행정구",
-        "대만",
-        "중국 본토",
-        "인도",
-        "인도네시아",
-        "태국",
-        "베트남",
-        "필리핀",
-        "말레이시아",
-        "아랍에미리트",
-        "사우디아라비아",
-        "이스라엘",
-        "튀르키예",
-        "남아프리카공화국",
-        "브라질",
-        "멕시코",
-        "아르헨티나",
-        "칠레",
-        "기타",
-      ],
-      consent: {
-        intro:
-          "Multica는 여러분의 개인정보를 소중히 다룹니다. 제공해 주신 개인정보는 계정 관리와 요청하신 제품·서비스 제공에만 사용합니다. 가끔씩 제품 업데이트, 활용 팁, 도움이 될 만한 인사이트도 함께 전해 드리고 싶습니다. 소식을 받고 싶으시다면 아래에서 선택해 주세요.",
-        outreach:
-          "서비스 업데이트, 지원 문의, 비즈니스 관련 후속 연락 등 Multica로부터 개별 연락을 받겠습니다.",
-        updates:
-          "Multica의 제품 업데이트, 인사이트, 이벤트 초대 소식을 받겠습니다.",
-        unsubscribe:
-          "언제든 수신을 거부할 수 있습니다. 개인정보와 데이터 권리를 어떻게 다루는지는 다음 문서에서 자세히 확인하실 수 있습니다:",
-        submitConsent:
-          "\"제출\"을 클릭하시면 요청하신 콘텐츠를 보내 드리기 위해 Multica가 정보를 저장하고 처리하는 것에 동의하게 됩니다.",
-        privacyLinkLabel: "개인정보 처리방침.",
-        privacyLinkHref: "/privacy",
-      },
-      success: {
-        title: "감사합니다. 요청을 잘 받았습니다.",
-        message:
-          "Multica 팀원이 영업일 기준 3일 이내에 답변드릴 예정입니다. 그동안 문서를 둘러보시거나 GitHub에서 스타를 눌러 주세요.",
-        cta: "홈으로 돌아가기",
-      },
-      errors: {
-        generic: "문제가 발생했습니다. 잠시 후 다시 시도해 주세요.",
-        rateLimit:
-          "최근 이 주소에서 여러 건의 문의가 접수되었습니다. 잠시 후 다시 시도해 주세요.",
-        freeEmail:
-          "비즈니스 이메일 주소를 사용해 주세요. 무료 이메일 서비스(gmail, outlook 등)는 사용하실 수 없습니다.",
-        invalidEmail: "올바른 이메일 주소 형식이 아닌 것 같습니다.",
       },
     },
   };

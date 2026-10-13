@@ -60,6 +60,12 @@ Root frontend commands and `make check` do not verify mobile. Docs-only changes 
 - Create/delete/leave and confirmation flows await the server before navigation or cleanup; do not optimistically delete entities. Exceptions: the existing workspace-leave race noted under Desktop Rules, and mobile inbox mark-read as documented in its instructions.
 - Message sends use visible pending state and retry on failure.
 
+## Deployment Feature Defaults
+
+- Commercial billing is disabled by default; `MULTICA_BILLING_ENABLED` is the deployment-wide opt-in, with `FF_BILLING_WORKSPACE_SUBSCRIPTIONS` remaining its workspace-subscription child switch. See the environment-variable reference for configuration and operational effects.
+- Self-host deployment snapshots and server-side PostHog are disabled by default. Web/desktop analytics additionally require an app-layer build-time opt-in, even when a remote backend provides a key. See the [environment-variable reference](apps/docs/content/docs/environment-variables.mdx) for explicit opt-in settings. Local logging and Prometheus metrics remain available.
+- Keep the root README in Chinese only; update `README.md` rather than introducing language-specific copies.
+
 ## API Compatibility
 
 Installed desktop clients may talk to newer backends. Preserve response compatibility at the API boundary.

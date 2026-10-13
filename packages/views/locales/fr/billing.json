@@ -258,6 +258,8 @@
     "load_failed_description": "Vous revenez de Stripe, mais nous n'avons pas pu charger votre liste d'espaces de travail pour ouvrir la bonne page de facturation. Ouvrez Paramètres de l'espace de travail → Facturation pour vérifier l'état actuel.",
     "workspace_missing_title": "Espace de travail introuvable",
     "workspace_missing_description": "Vous revenez de Stripe, mais cet espace de travail ne vous est plus accessible — il a peut-être été supprimé, ou vos droits ont changé. Ouvrez Facturation dans l'espace de travail attendu pour vérifier l'état actuel.",
+    "billing_disabled_title": "La facturation est indisponible",
+    "billing_disabled_description": "La facturation est désactivée sur ce déploiement : cette page de retour de paiement ne peut rien vérifier ni traiter. Vous pouvez fermer cette page et continuer à utiliser l'application.",
     "retry": "Réessayer",
     "go_to_app": "Aller sur Multica"
   }

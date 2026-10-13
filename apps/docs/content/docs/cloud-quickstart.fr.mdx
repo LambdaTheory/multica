@@ -9,9 +9,13 @@ import { Callout } from "fumadocs-ui/components/callout";
 Avant qu'un agent puisse s'exécuter, l'ordinateur qui l'exécute doit disposer d'au moins un [outil de codage IA pris en charge](/providers), installé et connecté — par exemple Claude Code, Codex ou Cursor. Multica ne fournit pas ces outils.
 </Callout>
 
+## Avant de commencer
+
+Déployez d'abord une instance Multica. Pour une installation auto-hébergée, suivez le [démarrage rapide de l'auto-hébergement](/self-host-quickstart) et utilisez l'adresse web de votre déploiement. Les étapes suivantes décrivent le parcours général après connexion à une instance disponible.
+
 ## 1. Connectez-vous et ouvrez votre espace de travail
 
-Connectez-vous sur le web ([multica.ai](https://multica.ai)) ou avec [Multica Desktop](https://multica.ai/download). La connexion par code de vérification envoyé par e-mail et la connexion Google sont toutes deux prises en charge.
+Connectez-vous à votre instance Multica. Les méthodes disponibles dépendent de sa configuration.
 
 - **Desktop** : peut connecter automatiquement cet ordinateur.
 - **Web** : connectez l'ordinateur depuis la ligne de commande à l'étape suivante.
@@ -21,30 +25,30 @@ Connectez-vous sur le web ([multica.ai](https://multica.ai)) ou avec [Multica De
 Les agents exécutent le travail sur les ordinateurs que vous connectez. Ouvrez **Équipe IA → Runtimes** en bas de la barre latérale :
 
 - **Avec Desktop** : Desktop enregistre automatiquement cet ordinateur comme runtime et détecte les outils de codage IA installés. Pour un outil que vous venez d'installer, cliquez sur **Actualiser** pour relancer la détection.
-- **Avec le Web, ou pour ajouter un autre ordinateur** : cliquez sur **Ajouter un ordinateur** en haut à droite, puis exécutez les deux commandes de la boîte de dialogue dans un terminal de l'ordinateur cible :
+- **Avec le Web, ou pour ajouter un autre ordinateur** : cliquez sur **Ajouter un ordinateur** en haut à droite, puis exécutez les deux commandes de la boîte de dialogue dans un terminal de l'ordinateur cible. La boîte de dialogue affiche la commande setup avec les adresses de votre instance déjà remplies — copiez-la de préférence depuis là. Forme générale :
 
   **macOS / Linux**
 
   ```bash
   curl -fsSL https://raw.githubusercontent.com/multica-ai/multica/main/scripts/install.sh | bash
-  multica setup
+  multica setup self-host --server-url <backend-url> --app-url <frontend-url>
   ```
 
   **Windows PowerShell**
 
   ```powershell
   irm https://raw.githubusercontent.com/multica-ai/multica/main/scripts/install.ps1 | iex
-  multica setup
+  multica setup self-host --server-url <backend-url> --app-url <frontend-url>
   ```
 
-  `multica setup` ouvre un navigateur pour finaliser la connexion, puis laisse le daemon tourner en arrière-plan. Une fois le daemon en ligne, la boîte de dialogue détecte généralement l'ordinateur en moins d'une minute.
+  Remplacez `<backend-url>` et `<frontend-url>` par les adresses backend et frontend de votre déploiement. `multica setup self-host` ouvre un navigateur pour finaliser la connexion, puis laisse le daemon tourner en arrière-plan. Une fois le daemon en ligne, la boîte de dialogue détecte généralement l'ordinateur en moins d'une minute.
 
 **Vérification** : un ordinateur en ligne apparaît dans la liste des runtimes.
 
 ![Boîte de dialogue Ajouter un ordinateur : les deux commandes et l'avis d'attente de détection](/images/docs/quickstart-add-computer.webp)
 
 <Callout type="info">
-Les commandes de connexion diffèrent légèrement sur les instances auto-hébergées — consultez le [démarrage rapide en auto-hébergement](/self-host-quickstart).
+`multica setup` seul (sans `self-host`) configure le CLI pour Multica Cloud (multica.ai) et n'est pas le chemin recommandé pour une instance auto-hébergée — utilisez `multica setup self-host` avec les adresses de votre déploiement, comme ci-dessus.
 </Callout>
 
 ## 3. Créez un agent
@@ -82,7 +86,7 @@ Après validation, ouvrez la tâche : le journal d'exécution affiche le statut 
 
 | Symptôme | À vérifier en premier |
 |---|---|
-| Aucun runtime trouvé | Vérifiez que l'outil de codage IA est installé et fonctionne dans un terminal. Sur Desktop, cliquez sur **Actualiser** ; avec le CLI, relancez `multica setup`. |
+| Aucun runtime trouvé | Vérifiez que l'outil de codage IA est installé et fonctionne dans un terminal. Sur Desktop, cliquez sur **Actualiser** ; avec le CLI, relancez `multica setup self-host` avec les mêmes adresses qu'à l'origine. |
 | Le runtime apparaît hors ligne | Gardez Desktop ouvert ; avec le CLI, exécutez `multica daemon status`, puis `multica daemon start` s'il n'est pas lancé. |
 | La tâche reste en file d'attente | Vérifiez que le runtime utilisé par l'agent est en ligne. Lorsqu'un runtime atteint sa limite de parallélisme, les nouvelles exécutions restent en file d'attente. |
 

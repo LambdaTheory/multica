@@ -120,3 +120,51 @@ func TestEmailDomain(t *testing.T) {
 		}
 	}
 }
+
+// TestEnabledFromEnvMatrix pins the shared disabled judgment used by both
+// NewFromEnv and /api/config: analytics is off unless ANALYTICS_DISABLED is
+// explicitly "false"/"0" AND a PostHog API key is configured.
+func TestEnabledFromEnvMatrix(t *testing.T) {
+	cases := []struct {
+		name     string
+		disabled string
+		key      string
+		want     bool
+	}{
+		{name: "missing_both", disabled: "", key: "", want: false},
+		{name: "missing_switch_with_key", disabled: "", key: "phc_k", want: false},
+		{name: "empty_switch_with_key", disabled: " ", key: "phc_k", want: false},
+		{name: "explicit_true_with_key", disabled: "true", key: "phc_k", want: false},
+		{name: "explicit_one_with_key", disabled: "1", key: "phc_k", want: false},
+		{name: "invalid_value_with_key", disabled: "yes", key: "phc_k", want: false},
+		{name: "explicit_false_without_key", disabled: "false", key: "", want: false},
+		{name: "explicit_zero_without_key", disabled: "0", key: " ", want: false},
+		{name: "explicit_false_with_key", disabled: "false", key: "phc_k", want: true},
+		{name: "explicit_zero_with_key", disabled: "0", key: "phc_k", want: true},
+		{name: "explicit_false_case_insensitive", disabled: " False ", key: "phc_k", want: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("ANALYTICS_DISABLED", tc.disabled)
+			t.Setenv("POSTHOG_API_KEY", tc.key)
+			if got := EnabledFromEnv(); got != tc.want {
+				t.Fatalf("EnabledFromEnv() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestNewFromEnvDefaultIsNoop pins the startup behavior: without an explicit
+// opt-in NewFromEnv must return the no-op client even when a PostHog key is
+// configured — self-hosted instances never ship events by accident.
+func TestNewFromEnvDefaultIsNoop(t *testing.T) {
+	t.Setenv("POSTHOG_API_KEY", "phc_k")
+	t.Setenv("ANALYTICS_DISABLED", "")
+	if _, isNoop := NewFromEnv().(NoopClient); !isNoop {
+		t.Fatal("NewFromEnv with an unopted-in key must return the no-op client")
+	}
+	t.Setenv("ANALYTICS_DISABLED", "false")
+	if _, isNoop := NewFromEnv().(NoopClient); isNoop {
+		t.Fatal("NewFromEnv after explicit opt-in with a key must return the real client")
+	}
+}

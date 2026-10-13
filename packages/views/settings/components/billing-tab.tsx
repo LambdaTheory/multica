@@ -23,8 +23,7 @@ import {
   workspaceSubscriptionPricesOptions,
   workspaceSubscriptionSummaryOptions,
 } from "@multica/core/billing";
-import { useFeatureEnabled } from "@multica/core/config";
-import { BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG } from "@multica/core/feature-flags";
+import { useBillingEnabled } from "@multica/core/config";
 import { useCurrentWorkspace } from "@multica/core/paths";
 import type {
   PurchaseWorkspaceSeatsRequest,
@@ -158,14 +157,13 @@ function statusBadgeVariant(
 
 /**
  * A second gate inside the tab keeps direct/test mounts fail-closed. The
- * Settings shell also omits this component and its navigation entry while the
- * flag is absent, so no subscription request is issued in either path.
+ * Settings shell also omits this component and its navigation entry while
+ * the effective billing gate (deployment master switch + subscription flag,
+ * missing master treated as off) is absent, so no subscription request is
+ * issued in either path.
  */
 export function BillingTab() {
-  const enabled = useFeatureEnabled(
-    BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG,
-    false,
-  );
+  const enabled = useBillingEnabled();
   return enabled ? <BillingTabContent /> : null;
 }
 

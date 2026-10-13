@@ -40,6 +40,7 @@ type billingProxyCase struct {
 // is the cheapest way to keep all 7 standard endpoints covered
 // without duplicating the proxy plumbing per test.
 func TestCloudBillingProxiesForwardCorrectly(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	cases := []billingProxyCase{
 		{
 			name:   "balance",
@@ -158,6 +159,7 @@ func TestCloudBillingProxiesForwardCorrectly(t *testing.T) {
 // the upstream URL, and the upstream therefore sees a different path
 // than every other billing endpoint — easy to break by accident.
 func TestGetCloudBillingCheckoutSession_AppendsSessionIDToPath(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	proxy := &fakeCloudRuntimeProxy{
 		enabled: true,
 		resp: &cloudruntime.Response{
@@ -190,6 +192,7 @@ func TestGetCloudBillingCheckoutSession_AppendsSessionIDToPath(t *testing.T) {
 // the leading slash but does not otherwise sanitize, so a stray `/`
 // here would re-target the upstream request.
 func TestGetCloudBillingCheckoutSession_RejectsPathTraversal(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	proxy := &fakeCloudRuntimeProxy{enabled: true}
 	useCloudRuntimeProxy(t, proxy)
 
@@ -217,6 +220,7 @@ func TestGetCloudBillingCheckoutSession_RejectsPathTraversal(t *testing.T) {
 // the no-id branch (defensive — chi shouldn't route to us without a
 // param, but we guard anyway).
 func TestGetCloudBillingCheckoutSession_MissingPathParamReturns400(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	proxy := &fakeCloudRuntimeProxy{enabled: true}
 	useCloudRuntimeProxy(t, proxy)
 
@@ -237,6 +241,10 @@ func TestGetCloudBillingCheckoutSession_MissingPathParamReturns400(t *testing.T)
 // deployments (no cloud URL configured) get a non-retryable 403 rather than
 // a cryptic upstream error.
 func TestCloudBillingDisabledReturnsForbidden(t *testing.T) {
+	// Billing is explicitly enabled here so the test pins the
+	// cloud-runtime-disabled branch (403 cloud_runtime_not_configured) rather
+	// than the billing-switch guard that runs before it.
+	withBillingEnabled(t, testHandler, true)
 	useCloudRuntimeProxy(t, &fakeCloudRuntimeProxy{enabled: false})
 
 	req := newRequest(http.MethodGet, "/api/cloud-billing/balance", nil)
@@ -253,7 +261,20 @@ func withCloudSubscriptionWorkspace(req *http.Request, role string) *http.Reques
 	return req.WithContext(ctx)
 }
 
+// withBillingEnabled flips the deployment-wide commercial switch on the
+// handler for the duration of the test. The switch is injected at startup in
+// production (MULTICA_BILLING_ENABLED), so tests manipulate the same field.
+func withBillingEnabled(t *testing.T, h *Handler, enabled bool) {
+	t.Helper()
+	orig := h.cfg.BillingEnabled
+	h.cfg.BillingEnabled = enabled
+	t.Cleanup(func() { h.cfg.BillingEnabled = orig })
+}
+
 func TestCloudWorkspaceSubscriptionsDisabledByDefault(t *testing.T) {
+	// Billing is on so this test isolates the subscriptions sub-flag; the
+	// deployment-wide switch has its own matrix below.
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, false)
 
 	reads := map[string]func(http.ResponseWriter, *http.Request){
@@ -280,6 +301,7 @@ func TestCloudWorkspaceSubscriptionsDisabledByDefault(t *testing.T) {
 }
 
 func TestCloudWorkspaceSubscriptionReadAndWritesUseScopedPaths(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 
 	cases := []struct {
@@ -367,6 +389,7 @@ func TestCloudWorkspaceSubscriptionReadAndWritesUseScopedPaths(t *testing.T) {
 }
 
 func TestCreateCloudWorkspaceSubscriptionCheckoutInjectsAuthoritativeWorkspaceAndEmail(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 	proxy := &fakeCloudRuntimeProxy{
 		enabled: true,
@@ -410,6 +433,7 @@ func TestCreateCloudWorkspaceSubscriptionCheckoutInjectsAuthoritativeWorkspaceAn
 }
 
 func TestCreateCloudWorkspaceSubscriptionCheckoutFailsWhenPayerCannotBeResolved(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 	proxy := &fakeCloudRuntimeProxy{enabled: true}
 	useCloudRuntimeProxy(t, proxy)
@@ -432,6 +456,7 @@ func TestCreateCloudWorkspaceSubscriptionCheckoutFailsWhenPayerCannotBeResolved(
 }
 
 func TestCreateCloudWorkspaceSubscriptionCheckoutRejectsInvalidPayerID(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 	proxy := &fakeCloudRuntimeProxy{enabled: true}
 	useCloudRuntimeProxy(t, proxy)
@@ -454,6 +479,7 @@ func TestCreateCloudWorkspaceSubscriptionCheckoutRejectsInvalidPayerID(t *testin
 }
 
 func TestCreateCloudWorkspaceSubscriptionCheckoutRejectsEmptyPayerEmail(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 	proxy := &fakeCloudRuntimeProxy{enabled: true}
 	useCloudRuntimeProxy(t, proxy)
@@ -478,6 +504,7 @@ func TestCreateCloudWorkspaceSubscriptionCheckoutRejectsEmptyPayerEmail(t *testi
 }
 
 func TestCreateCloudWorkspaceSubscriptionCheckoutAcceptsHeaderIdempotencyKey(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 	proxy := &fakeCloudRuntimeProxy{
 		enabled: true,
@@ -509,6 +536,7 @@ func TestCreateCloudWorkspaceSubscriptionCheckoutAcceptsHeaderIdempotencyKey(t *
 }
 
 func TestCloudWorkspaceSeatPurchaseForwardsOnlyAdditiveConfirmation(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 	proxy := &fakeCloudRuntimeProxy{enabled: true, resp: &cloudruntime.Response{StatusCode: http.StatusAccepted, Body: []byte(`{"status":"submitted"}`)}}
 	useCloudRuntimeProxy(t, proxy)
@@ -547,6 +575,7 @@ func TestCloudWorkspaceSeatPurchaseForwardsOnlyAdditiveConfirmation(t *testing.T
 }
 
 func TestCloudWorkspaceSeatPurchasePreviewUsesAuthoritativePath(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 	proxy := &fakeCloudRuntimeProxy{enabled: true, resp: &cloudruntime.Response{StatusCode: http.StatusOK, Body: []byte(`{"resulting_seats":7}`)}}
 	useCloudRuntimeProxy(t, proxy)
@@ -565,6 +594,7 @@ func TestCloudWorkspaceSeatPurchasePreviewUsesAuthoritativePath(t *testing.T) {
 }
 
 func TestCloudWorkspaceSeatPurchaseRejectsInvalidRequests(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 	tests := []struct {
 		name   string
@@ -598,6 +628,7 @@ func TestCloudWorkspaceSeatPurchaseRejectsInvalidRequests(t *testing.T) {
 }
 
 func TestCloudWorkspaceSubscriptionWritesRequireManagerRole(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 	proxy := &fakeCloudRuntimeProxy{enabled: true}
 	useCloudRuntimeProxy(t, proxy)
@@ -618,6 +649,7 @@ func TestCloudWorkspaceSubscriptionWritesRequireManagerRole(t *testing.T) {
 }
 
 func TestCloudWorkspaceSubscriptionsRejectMachineActorsAtHandler(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 
 	for _, actorSource := range []string{"task_token", "cloud_pat"} {
@@ -645,6 +677,7 @@ func TestCloudWorkspaceSubscriptionsRejectMachineActorsAtHandler(t *testing.T) {
 }
 
 func TestCloudWorkspaceSubscriptionMutationsValidateLocally(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
 
 	cases := []struct {
@@ -722,6 +755,7 @@ func TestCloudWorkspaceSubscriptionMutationsValidateLocally(t *testing.T) {
 // json.Unmarshal/Marshal round-trip the JSON proxy might
 // inadvertently apply.
 func TestStripeWebhookForwardsRawBodyAndSignature(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	rawBody := "  \n{\"id\":\"evt_test\",\"type\":\"checkout.session.completed\"}\n"
 	const sig = "t=1700000000,v1=deadbeef0000aaaa"
 	const ct = "application/json; charset=utf-8"
@@ -783,6 +817,7 @@ func TestStripeWebhookForwardsRawBodyAndSignature(t *testing.T) {
 // in this case, so Stripe's delivery dashboard sees the same
 // outcome it would have if the request had reached cloud.
 func TestStripeWebhookMissingSignatureRejectedLocally(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	proxy := &fakeCloudRuntimeProxy{enabled: true}
 	useCloudRuntimeProxy(t, proxy)
 
@@ -806,6 +841,7 @@ func TestStripeWebhookMissingSignatureRejectedLocally(t *testing.T) {
 // signature header is set because, post-fix, the absence of it is
 // itself a 401 — see TestStripeWebhookMissingSignatureRejectedLocally.
 func TestStripeWebhookForwardsEmptyBody(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	proxy := &fakeCloudRuntimeProxy{
 		enabled: true,
 		resp: &cloudruntime.Response{
@@ -834,6 +870,7 @@ func TestStripeWebhookForwardsEmptyBody(t *testing.T) {
 // buffer the whole thing in memory, and before we spend a Cloud
 // upstream round-trip on a doomed verification.
 func TestStripeWebhookRejectsLargeBody(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	proxy := &fakeCloudRuntimeProxy{enabled: true}
 	useCloudRuntimeProxy(t, proxy)
 
@@ -855,6 +892,9 @@ func TestStripeWebhookRejectsLargeBody(t *testing.T) {
 // cloud-runtime disabled test but for the webhook path. Self-hosted
 // deployments without a cloud URL must return a non-retryable 403, not crash.
 func TestStripeWebhookDisabledReturnsForbidden(t *testing.T) {
+	// Billing is explicitly enabled here so the test pins the
+	// cloud-runtime-disabled branch rather than the billing-switch guard.
+	withBillingEnabled(t, testHandler, true)
 	useCloudRuntimeProxy(t, &fakeCloudRuntimeProxy{enabled: false})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/webhooks/stripe",
@@ -875,6 +915,7 @@ func TestStripeWebhookDisabledReturnsForbidden(t *testing.T) {
 // WebhookIPRateLimiter so a flood of bogus requests doesn't burn
 // cloud-side budget.
 func TestStripeWebhookRateLimited(t *testing.T) {
+	withBillingEnabled(t, testHandler, true)
 	proxy := &fakeCloudRuntimeProxy{enabled: true}
 	useCloudRuntimeProxy(t, proxy)
 
@@ -904,3 +945,71 @@ func TestStripeWebhookRateLimited(t *testing.T) {
 type denyingWebhookIPRateLimiter struct{}
 
 func (denyingWebhookIPRateLimiter) Allow(_ context.Context, _ string) bool { return false }
+
+// TestBillingSwitchDisabledAnswersForbiddenWithoutUpstream pins the
+// deployment-wide commercial switch (MULTICA_BILLING_ENABLED, default off):
+// with the switch off — and the subscriptions sub-flag on, to prove the
+// switch dominates it — every commercial endpoint answers a non-retryable 403
+// and never reaches the billing upstream.
+func TestBillingSwitchDisabledAnswersForbiddenWithoutUpstream(t *testing.T) {
+	withBillingEnabled(t, testHandler, false)
+	withFeatureFlag(t, testHandler, featureflags.BillingWorkspaceSubscriptions, true)
+
+	subscriptionRequest := func(method string) *http.Request {
+		req := withCloudSubscriptionWorkspace(newRequest(method, "/api/cloud-subscriptions/x", nil), "owner")
+		req.Header.Set(idempotencyKeyHeader, "k")
+		return req
+	}
+	cases := []struct {
+		name   string
+		method string
+		req    func() *http.Request
+		invoke func(http.ResponseWriter, *http.Request)
+	}{
+		{"billing balance", http.MethodGet, nil, testHandler.GetCloudBillingBalance},
+		{"billing transactions", http.MethodGet, nil, testHandler.ListCloudBillingTransactions},
+		{"billing batches", http.MethodGet, nil, testHandler.ListCloudBillingBatches},
+		{"billing topups", http.MethodGet, nil, testHandler.ListCloudBillingTopups},
+		{"billing price tiers", http.MethodGet, nil, testHandler.ListCloudBillingPriceTiers},
+		{"billing checkout session create", http.MethodPost, nil, testHandler.CreateCloudBillingCheckoutSession},
+		{"billing checkout session read", http.MethodGet, nil, func(w http.ResponseWriter, r *http.Request) {
+			testHandler.GetCloudBillingCheckoutSession(w, withURLParam(r, "sessionId", "cs_test_abc"))
+		}},
+		{"billing portal session create", http.MethodPost, nil, testHandler.CreateCloudBillingPortalSession},
+		{"stripe webhook", http.MethodPost, nil, func(w http.ResponseWriter, r *http.Request) {
+			r.Header.Set("Stripe-Signature", "t=1,v1=deadbeef")
+			testHandler.HandleCloudBillingStripeWebhook(w, r)
+		}},
+		{"subscription summary", http.MethodGet, func() *http.Request { return subscriptionRequest(http.MethodGet) }, testHandler.GetCloudWorkspaceSubscriptionSummary},
+		{"subscription prices", http.MethodGet, func() *http.Request { return subscriptionRequest(http.MethodGet) }, testHandler.GetCloudWorkspaceSubscriptionPrices},
+		{"subscription checkout", http.MethodPost, func() *http.Request { return subscriptionRequest(http.MethodPost) }, testHandler.CreateCloudWorkspaceSubscriptionCheckout},
+		{"subscription seat purchase", http.MethodPost, func() *http.Request { return subscriptionRequest(http.MethodPost) }, testHandler.PurchaseCloudWorkspaceSubscriptionSeats},
+		{"subscription seat purchase preview", http.MethodPost, func() *http.Request { return subscriptionRequest(http.MethodPost) }, testHandler.PreviewCloudWorkspaceSubscriptionSeatPurchase},
+		{"subscription seat reconcile", http.MethodPost, func() *http.Request { return subscriptionRequest(http.MethodPost) }, testHandler.ReconcileCloudWorkspaceSubscriptionSeats},
+		{"subscription portal", http.MethodPost, func() *http.Request { return subscriptionRequest(http.MethodPost) }, testHandler.CreateCloudWorkspaceSubscriptionPortal},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			proxy := &fakeCloudRuntimeProxy{enabled: true, resp: &cloudruntime.Response{StatusCode: http.StatusOK, Body: []byte(`{}`)}}
+			useCloudRuntimeProxy(t, proxy)
+
+			req := newRequest(tc.method, "/api/billing-switch-matrix", nil)
+			if tc.req != nil {
+				req = tc.req()
+			}
+			w := httptest.NewRecorder()
+			tc.invoke(w, req)
+
+			if w.Code != http.StatusForbidden {
+				t.Fatalf("status = %d, body = %s", w.Code, w.Body.String())
+			}
+			if !strings.Contains(w.Body.String(), "billing_disabled") {
+				t.Fatalf("body = %s, want billing_disabled code", w.Body.String())
+			}
+			if proxy.called {
+				t.Fatal("billing-disabled deployment must not call the billing upstream")
+			}
+		})
+	}
+}

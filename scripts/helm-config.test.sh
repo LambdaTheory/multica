@@ -34,6 +34,23 @@ default_config="$(
 )"
 require_rendered_value "$default_config" 'MULTICA_VCS_INTEGRATION_ENABLED: "true"'
 require_rendered_value "$default_config" 'MULTICA_CLOUD_URL: ""'
+require_rendered_value "$default_config" 'MULTICA_BILLING_ENABLED: "false"'
+require_rendered_value "$default_config" 'FF_BILLING_WORKSPACE_SUBSCRIPTIONS: "false"'
+require_rendered_value "$default_config" 'DO_NOT_TRACK: "true"'
+require_rendered_value "$default_config" 'ANALYTICS_DISABLED: "true"'
+
+opt_in_config="$(
+  helm template multica "$CHART_DIR" \
+    --show-only templates/configmap.yaml \
+    --set backend.config.billingEnabled=true \
+    --set backend.config.billingWorkspaceSubscriptions=true \
+    --set backend.config.doNotTrack=false \
+    --set backend.config.analyticsDisabled=false
+)"
+require_rendered_value "$opt_in_config" 'MULTICA_BILLING_ENABLED: "true"'
+require_rendered_value "$opt_in_config" 'FF_BILLING_WORKSPACE_SUBSCRIPTIONS: "true"'
+require_rendered_value "$opt_in_config" 'DO_NOT_TRACK: "false"'
+require_rendered_value "$opt_in_config" 'ANALYTICS_DISABLED: "false"'
 require_rendered_value "$default_config" 'MULTICA_DATABASE_STARTUP_TIMEOUT: "3m"'
 require_rendered_value "$default_config" 'MULTICA_DATABASE_CONNECT_TIMEOUT: "5s"'
 

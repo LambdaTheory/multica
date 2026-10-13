@@ -49,6 +49,8 @@ You also need to pick an email service, otherwise verification codes and invitat
 
 When setting a shutdown hold on Kubernetes, `terminationGracePeriodSeconds` must exceed the hold plus the time the actual shutdown needs.
 
+`MULTICA_BILLING_ENABLED` is the deployment-wide commercial-feature switch; its only enabling values are `true` and `1`. When disabled, billing UI and commercial APIs, commercial task automation quotas, and seat controls are disabled. It does not disable Cloud runtime or PAT authentication, cancel existing upstream subscriptions, or delete data. Stripe webhooks return a non-success response while disabled and may be retried; handle pending settlements before changing the setting. This is a startup setting, so restart the API after changing it. The existing `FF_BILLING_WORKSPACE_SUBSCRIPTIONS` remains a child switch for workspace subscriptions.
+
 The primary and replica connection limits are independent. Budget their sum across every API process against the PostgreSQL cluster's connection ceiling. Replica connections are recycled after five minutes by default to refresh read-only validation after promotion. Replica connection failures transparently fall back to primary and open a short passive circuit; no background database probe is added. Replica reads have no application-enforced staleness bound, so monitor lag in the database layer and keep consistency-sensitive reads on primary.
 
 ## Public URLs and browser access
@@ -307,16 +309,18 @@ A few value rules:
 
 | Variable | Default | Description |
 |---|---|---|
-| `DO_NOT_TRACK` | empty (telemetry enabled) | Set `1` or `true` (case-insensitive) to stop first-party anonymous self-host telemetry collection and delivery |
-| `ANALYTICS_DISABLED` | `false` | Set `true` to turn off PostHog reporting |
+| `DO_NOT_TRACK` | `true` | Self-host deployment snapshots are disabled by default; set explicitly to `false` or `0` to enable them |
+| `ANALYTICS_DISABLED` | `true` | Server-side PostHog is disabled by default; set explicitly to `false` or `0` and provide `POSTHOG_API_KEY` to enable it |
+| `MULTICA_BILLING_ENABLED` | `false` | Enables commercial billing features only when set to `true` or `1`; changes take effect after restarting the API |
+| `FF_BILLING_WORKSPACE_SUBSCRIPTIONS` | `false` | Existing child switch for workspace subscriptions; effective only when `MULTICA_BILLING_ENABLED` is enabled |
 | `POSTHOG_API_KEY` | empty | Reporting is off when unset; set it to use your own PostHog project |
 | `POSTHOG_HOST` | `https://us.i.posthog.com` | PostHog host |
 | `METRICS_ADDR` | empty | Prometheus metrics listen address; empty means not started |
 | `REALTIME_METRICS_TOKEN` | empty | Bearer token protecting `/health/realtime` |
 
-First-party self-host telemetry sends one deployment-level snapshot per UTC day to the fixed, non-configurable `https://telemetry.multica.ai/v1/telemetry/events` endpoint. It contains the formal release version; bucketed workspace, distinct-human-member, active-agent, and 24-hour active-daemon counts; and aggregate run counts for the previous 24 hours. It never includes names, email addresses or domains, IP addresses, business identifiers, host/device details, repositories, models/plugins, prompts/output, comments/chats, paths, token/cost data, credentials, errors, stacks, or logs. It is used only to understand self-hosted version adoption, deployment-size ranges, and aggregate usage—not for billing, licensing, authentication, or security decisions.
+When explicitly enabled, first-party self-host telemetry sends one deployment-level snapshot per UTC day to the fixed, non-configurable `https://telemetry.multica.ai/v1/telemetry/events` endpoint. It contains a deployment instance ID (`instance_id`), the snapshot day, the formal release version; bucketed workspace, distinct-human-member, active-agent, and 24-hour active-daemon counts; and aggregate run counts for the previous 24 hours. It never includes names, email addresses or domains, IP addresses, business identifiers, host/device details, repositories, models/plugins, prompts/output, comments/chats, paths, token/cost data, credentials, errors, stacks, or logs. It is used only to understand self-hosted version adoption, deployment-size ranges, and aggregate usage—not for billing, licensing, authentication, or security decisions.
 
-`DO_NOT_TRACK` and `ANALYTICS_DISABLED` are independent. The former controls this first-party anonymous snapshot; the latter controls the optional PostHog integration.
+`DO_NOT_TRACK` and `ANALYTICS_DISABLED` are independent. The former controls this first-party anonymous snapshot; the latter controls the optional server-side PostHog integration. Web and Desktop SDK collection is a separate build-time opt-in (`NEXT_PUBLIC_ANALYTICS_ENABLED=true` for Web, `VITE_ANALYTICS_ENABLED=true` for Desktop) and also requires the backend to allow analytics. With the default client settings, clients do not report analytics even when connected to a backend that allows it. Local logs and Prometheus metrics are unaffected.
 
 ## Next steps
 

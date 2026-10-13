@@ -1,4 +1,4 @@
-import { githubUrl, discordUrl } from "../components/shared";
+import { githubUrl } from "../components/shared";
 import type { LandingDict } from "./types";
 
 export function createEnDict(
@@ -23,9 +23,8 @@ export function createEnDict(
     headlineLine2: "won\u2019t be human.",
     subheading:
       "Multica is a source-available platform that turns coding agents into real teammates. Assign tasks, track progress, compound skills \u2014 manage your human + agent workforce in one place.",
-    cta: "Start free trial",
+    cta: "Get started",
     downloadDesktop: "Download Desktop",
-    talkToSales: "Talk to sales",
     worksWith: "Works with 20+ AI coding tools",
     imageAlt: "Multica board view \u2014 issues managed by humans and agents",
   },
@@ -163,7 +162,7 @@ export function createEnDict(
     headlineLine2: "on your terms.",
     description:
       "Multica\u2019s source code is public. Inspect every line, self-host it for free, and shape the future of human + agent collaboration. Offering Multica to others as a hosted service requires a commercial license.",
-    cta: "Star on GitHub",
+    cta: "View on GitHub",
     licensingCta: "How licensing works \u2192",
     highlights: [
       {
@@ -252,8 +251,6 @@ export function createEnDict(
         links: [
           { label: "Documentation", href: docsHref },
           { label: "API", href: githubUrl },
-          { label: "X (Twitter)", href: "https://x.com/MulticaAI" },
-          { label: "Discord", href: discordUrl },
         ],
       },
       company: {
@@ -262,7 +259,6 @@ export function createEnDict(
           { label: "About", href: "/about" },
           { label: "Licensing", href: "/licensing" },
           { label: "Privacy", href: "/privacy" },
-          { label: "Contact Sales", href: "/contact-sales" },
           { label: "GitHub", href: githubUrl },
         ],
       },
@@ -299,16 +295,10 @@ export function createEnDict(
       ],
       contacts: [
         {
-          label: "Commercial licensing & sales",
-          linkLabel: "Contact Sales",
-          href: "/contact-sales",
-        },
-        {
           label: "How licensing works",
           linkLabel: "Licensing FAQ",
           href: "/licensing",
         },
-        { label: "Community & support", linkLabel: "Discord", href: discordUrl },
         { label: "Source code & issues", linkLabel: "GitHub", href: githubUrl },
       ],
     },
@@ -389,12 +379,6 @@ export function createEnDict(
           "Attribution: if you build on Multica\u2019s backend, daemon, or CLI without the Multica interface, keep the copyright and NOTICE information, and state in your user-facing documentation that your product is built on Multica, with a link to the [GitHub repository](https://github.com/multica-ai/multica).",
           "Forks: publishing the source code of a fork is not a hosted service and needs no commercial license. Anyone who operates a hosted service from that fork needs their own.",
           "A commercial license and a branding waiver are separate grants. One does not include the other.",
-        ],
-      },
-      {
-        heading: "Getting a commercial license",
-        paragraphs: [
-          "Tell us about your use case through [Contact Sales](/contact-sales) and we\u2019ll get back to you within three business days. Not sure whether your setup needs a license? Ask us on [Discord](" + discordUrl + ") or through the same form.",
         ],
       },
     ],
@@ -3955,123 +3939,11 @@ export function createEnDict(
       copyLabel: "Copy",
       copiedLabel: "Copied",
     },
-    cloud: {
-      title: "Cloud runtime (waitlist)",
-      sub: "We’ll host the runtime for you. Not live yet — leave your email to be notified.",
-    },
     footer: {
       releaseNotes: "What’s new in {version}",
       allReleases: "View all releases",
       currentVersion: "Current version: {version}",
       versionUnavailable: "Version unavailable — check GitHub",
-    },
-  },
-  contactSales: {
-    pageTitle: "Contact Sales",
-    pageDescription:
-      "Talk to the Multica team about rolling out human + agent workflows at your company.",
-    eyebrow: "Contact Sales",
-    title: "Let’s understand your needs",
-    fields: {
-      firstName: "First name",
-      lastName: "Last name",
-      businessEmail: "Business email",
-      businessEmailHint:
-        "Use a company email. Gmail, Outlook, and other personal email providers aren't accepted.",
-      companyName: "Company name",
-      companySize: "Company size",
-      countryRegion: "Country / Region",
-      useCase: "How do you plan to use or collaborate with Multica?",
-      goals: "Your goals or challenges",
-      selectPlaceholder: "Please select",
-      submit: "Submit",
-      submitting: "Submitting…",
-    },
-    companySizes: [
-      { value: "1-10", label: "1 – 10 employees" },
-      { value: "11-50", label: "11 – 50 employees" },
-      { value: "51-200", label: "51 – 200 employees" },
-      { value: "201-500", label: "201 – 500 employees" },
-      { value: "501-1000", label: "501 – 1,000 employees" },
-      { value: "1000+", label: "1,000+ employees" },
-    ],
-    useCases: [
-      { value: "evaluate", label: "Evaluating Multica for my team" },
-      { value: "adopt_team", label: "Rolling out Multica to a team or company" },
-      { value: "self_host", label: "Self-hosting on our own infrastructure" },
-      { value: "integrate", label: "Integrating Multica with existing tools" },
-      { value: "partner", label: "Partnership or reseller inquiry" },
-      { value: "other", label: "Something else" },
-    ],
-    countries: [
-      "United States",
-      "Canada",
-      "United Kingdom",
-      "Germany",
-      "France",
-      "Netherlands",
-      "Sweden",
-      "Switzerland",
-      "Spain",
-      "Italy",
-      "Ireland",
-      "Norway",
-      "Denmark",
-      "Finland",
-      "Belgium",
-      "Portugal",
-      "Australia",
-      "New Zealand",
-      "Japan",
-      "South Korea",
-      "Singapore",
-      "Hong Kong SAR",
-      "Taiwan",
-      "China (Mainland)",
-      "India",
-      "Indonesia",
-      "Thailand",
-      "Vietnam",
-      "Philippines",
-      "Malaysia",
-      "United Arab Emirates",
-      "Saudi Arabia",
-      "Israel",
-      "Turkey",
-      "South Africa",
-      "Brazil",
-      "Mexico",
-      "Argentina",
-      "Chile",
-      "Other",
-    ],
-    consent: {
-      intro:
-        "Multica respects your privacy. We’ll use your personal information only to manage your account and deliver the products or services you’ve requested. Occasionally, we’d love to share product updates, best practices, and insights that may be relevant to you. Please let us know below if you’d like to hear from us.",
-      outreach:
-        "I’d like to receive one-to-one communication from Multica, including service updates, support inquiries, and business-related follow-ups.",
-      updates:
-        "I’d like to receive product updates, insights, and event invitations from Multica.",
-      unsubscribe:
-        "You can unsubscribe from our communications at any time. For more details on how we handle your data and privacy rights, please review our",
-      submitConsent:
-        "By clicking “Submit,” you consent to allow Multica to store and process your information for the purpose of delivering the requested content.",
-      privacyLinkLabel: "Privacy Policy.",
-      privacyLinkHref: "/privacy",
-    },
-    success: {
-      title: "Thanks — we got it.",
-      message:
-        "A member of the Multica team will respond within three business days. In the meantime, feel free to explore the docs or star us on GitHub.",
-      cta: "Back to home",
-    },
-    errors: {
-      generic: "Something went wrong — please try again in a moment.",
-      rateLimit:
-        "We’ve received a few inquiries from this address recently. Please try again in a little while.",
-      freeEmail:
-        "Please use a business email address — free providers (gmail, outlook, etc.) are not accepted.",
-      invalidEmail: "That doesn’t look like a valid email address.",
     },
   },
   };

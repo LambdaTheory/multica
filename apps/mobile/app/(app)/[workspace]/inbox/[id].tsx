@@ -5,7 +5,7 @@ import {
   resolveBillingRecovery,
   type BillingRecoveryKind,
 } from "@multica/core/billing/recovery";
-import { BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG } from "@multica/core/feature-flags";
+import { BILLING_ENABLED_FLAG, BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG } from "@multica/core/feature-flags";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -80,10 +80,14 @@ export default function InboxNoticeDetail() {
     ...appConfigOptions(),
     enabled: isQuotaNotice,
   });
+  // Effective billing gate mirrors the web/desktop clients: BOTH the
+  // deployment master switch and the subscription flag must be true. The
+  // master flag is absent on servers that predate it — missing fails closed,
+  // so connecting to an older backend keeps every purchase surface hidden.
+  const configFlags = configQuery.data?.feature_flags;
   const billingEnabled =
-    configQuery.data?.feature_flags?.[
-      BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG
-    ] === true;
+    configFlags?.[BILLING_ENABLED_FLAG] === true &&
+    configFlags?.[BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG] === true;
   const summaryQuery = useQuery(
     workspaceSubscriptionSummaryOptions(wsId, isQuotaNotice && billingEnabled),
   );

@@ -7,14 +7,15 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 자체 호스팅 Multica는 두 부분으로 나뉩니다.
 
+> **Fork 이미지:** 게시된 upstream 이미지는 이 fork의 변경 사항을 포함하지 않습니다. 이 checkout에서 `make selfhost-build`를 실행해 backend와 frontend를 빌드하세요.
 | 부분 | 실행하는 항목 | 설치 위치 |
 |---|---|---|
 | **Multica 서비스** | Web, API, PostgreSQL | Docker가 설치된 컴퓨터 |
 | **실행 컴퓨터** | Multica 데몬과 AI 코딩 도구 | 개발자가 실제로 작업하는 컴퓨터 |
 
-두 부분을 같은 컴퓨터에 둘 수도 있고 분리할 수도 있습니다. 자체 호스팅으로 대체하는 것은 Multica Cloud 부분뿐입니다.
+두 부분을 같은 컴퓨터에 두거나 분리할 수 있습니다. 배포 환경에 맞는 방식을 선택하세요.
 
-이 문서에서는 Docker Compose를 사용합니다. Kubernetes 배포는 저장소의 [Self-hosting guide](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative)를 참고하세요.
+이 문서에서는 Docker Compose를 사용합니다. Kubernetes 배포는 저장소의 [Self-hosting guide](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative)를 참고하세요.
 
 ## 시작하기 전에
 
@@ -40,30 +41,23 @@ Multica는 Compose v2인 `docker compose`를 사용합니다. 이전 `docker-com
 서비스를 실행할 컴퓨터에서 다음을 실행합니다.
 
 ```bash
-git clone --depth 1 https://github.com/multica-ai/multica.git
+git clone --depth 1 https://github.com/LambdaTheory/multica.git
 cd multica
-make selfhost
+make selfhost-build
 ```
 
-처음 실행할 때 `make selfhost`가 다음 작업을 수행합니다.
+처음 실행할 때 `make selfhost-build`가 다음 작업을 수행합니다.
 
 1. `.env.example`에서 `.env` 생성
 2. `JWT_SECRET`, PostgreSQL 비밀번호, `MULTICA_VCS_SECRET_KEY`(자체 호스팅 Git 연동 암호화 키)를 임의 생성
-3. PostgreSQL, Multica backend, Multica frontend 이미지 pull
+3. PostgreSQL 이미지를 가져오고 checkout에서 Multica backend 및 frontend 이미지 빌드
 4. persistent data volume 생성 및 세 컨테이너 시작
 5. backend가 health check에 응답할 때까지 대기
 
-이후 `make selfhost`를 다시 실행하면 기존 `.env`와 data volume을 계속 사용하며 키를 새로 만들지 않습니다.
+이후 `make selfhost-build`를 다시 실행하면 기존 `.env`와 data volume을 계속 사용하며 키를 새로 만들지 않습니다.
 
 <Callout type="info">
-`make selfhost`는 공개된 이미지를 pull하며 현재 checkout의 코드를 컴파일하지 않습니다. 로컬 소스 코드를 테스트하려면 `make selfhost-build`를 사용하세요.
-
-공개된 이미지는 최신 **release 태그**를 따르지만, 단순히 `git clone`하면 `main`이 체크아웃되며 보통 릴리스보다 앞서 있습니다. 이 checkout에서 무언가를 빌드할 때(CLI, 또는 `make selfhost-build`로 만드는 이미지)는 먼저 해당 release 태그로 전환해서 빌드 결과물과 실행 중인 컨테이너의 버전을 일치시키세요:
-
-```bash
-git fetch --tags --depth 1
-git checkout $(git tag -l 'v*' --sort=-v:refname | head -1)
-```
+`make selfhost-build`는 이 fork의 코드에서 이미지를 빌드합니다. 공개된 upstream 이미지는 이 fork의 변경 사항을 포함하지 않습니다.
 </Callout>
 
 ## 2. 서비스 준비 상태 확인
@@ -366,7 +360,7 @@ HTTP 200이면서 두 검사가 모두 `ok`가 아니라면 새 버전이 migrat
 
 Helm은 자체 업그레이드 경로가 있습니다. values 파일에서 `images.backend.tag` / `images.frontend.tag`를 원하는 릴리스로 설정한 뒤 `helm upgrade`를 실행하세요. 태그가 바뀌면 파드 스펙이 바뀌므로 Kubernetes가 새 이미지를 받아 Deployment를 롤아웃합니다 — 이것이 확실한 경로입니다.
 
-`kubectl -n multica rollout restart`는 그 자체로는 업그레이드가 **아닙니다**. 차트는 `pullPolicy: IfNotPresent`로 배포되므로(`deploy/helm/multica/values.yaml`), 해당 태그를 이미 캐시한 노드는 예전 이미지를 재사용하고 restart를 해도 아무것도 바뀌지 않습니다 — `MULTICA_IMAGE_TAG` 고정과 같은 부류의 함정입니다. 부동 태그로 이 방식을 쓰려면 먼저 `images.backend.pullPolicy` / `images.frontend.pullPolicy`를 `Always`로 설정하세요. 저장소의 [Self-hosting guide](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative)를 참고하세요.
+`kubectl -n multica rollout restart`는 그 자체로는 업그레이드가 **아닙니다**. 차트는 `pullPolicy: IfNotPresent`로 배포되므로(`deploy/helm/multica/values.yaml`), 해당 태그를 이미 캐시한 노드는 예전 이미지를 재사용하고 restart를 해도 아무것도 바뀌지 않습니다 — `MULTICA_IMAGE_TAG` 고정과 같은 부류의 함정입니다. 부동 태그로 이 방식을 쓰려면 먼저 `images.backend.pullPolicy` / `images.frontend.pullPolicy`를 `Always`로 설정하세요. 저장소의 [Self-hosting guide](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative)를 참고하세요.
 
 <Callout type="warning">
 `docker compose down`은 `pgdata`와 `backend_uploads`를 유지합니다. `-v`를 추가하면 데이터베이스를 포함한 이 data volume이 삭제됩니다. 인스턴스를 비우려는 것이 확실하지 않다면 `docker compose down -v`를 실행하지 마세요.
@@ -388,5 +382,5 @@ Helm은 자체 업그레이드 경로가 있습니다. values 파일에서 `imag
 
 - [로그인 및 가입 설정](/auth-setup) — 이메일, Google 로그인, 가입 범위를 설정합니다.
 - [환경 변수](/environment-variables) — 전체 서버 설정을 확인합니다.
-- [Self-hosting guide](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md) — Kubernetes, 업그레이드, 수동 배포를 알아봅니다.
+- [Self-hosting guide](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md) — Kubernetes, 업그레이드, 수동 배포를 알아봅니다.
 - [데스크톱 앱](/desktop-app) — Desktop을 자체 호스팅 서비스에 연결합니다.

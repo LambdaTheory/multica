@@ -34,9 +34,17 @@ vi.mock("../logger", async (importOriginal) => {
 vi.mock("../analytics", () => ({
   captureSignupSource: vi.fn(),
   identify: vi.fn(),
-  initAnalytics: vi.fn(),
+  initAnalytics: vi.fn(() => true),
   resetAnalytics: vi.fn(),
+  setAnalyticsEnabled: vi.fn(),
 }));
+
+import {
+  captureSignupSource,
+  identify,
+  initAnalytics,
+  setAnalyticsEnabled,
+} from "../analytics";
 
 const fakeUser = {
   id: "user-1",
@@ -79,11 +87,13 @@ function renderInitializer({
   storage = makeStorage({ multica_token: "token-1" }),
   cookieAuth = false,
   platform = "desktop",
+  analyticsEnabled = false,
 }: {
   api: ApiClient;
   storage?: StorageAdapter;
   cookieAuth?: boolean;
   platform?: "desktop" | "web";
+  analyticsEnabled?: boolean;
 }) {
   const onLogin = vi.fn();
   const onLogout = vi.fn();
@@ -99,6 +109,7 @@ function renderInitializer({
     <QueryClientProvider client={queryClient}>
       <AuthInitializer
         cookieAuth={cookieAuth}
+        analyticsEnabled={analyticsEnabled}
         identity={{ platform }}
         onLogin={onLogin}
         storage={storage}
@@ -401,5 +412,130 @@ describe("AuthInitializer recovery", () => {
     });
     expect(storage.snapshot().multica_token).toBeUndefined();
     expect(onLogout).toHaveBeenCalledOnce();
+  });
+});
+
+describe("AuthInitializer analytics gating", () => {
+  const analytics = () => ({
+    initAnalytics: vi.mocked(initAnalytics),
+    captureSignupSource: vi.mocked(captureSignupSource),
+    setAnalyticsEnabled: vi.mocked(setAnalyticsEnabled),
+  });
+
+  // Regression: a fork client without the build-time opt-in must stay fully
+  // inert even when the connected backend advertises a valid PostHog key.
+  it("default-off: a remote key never initializes the SDK or stamps attribution", async () => {
+    const getConfig = vi.fn().mockResolvedValue({
+      posthog_key: "phc_remote",
+      posthog_host: "https://us.i.posthog.com",
+    });
+    const api = makeApi({ getConfig });
+    renderInitializer({ api });
+
+    await waitFor(() => {
+      expect(getConfig).toHaveBeenCalled();
+    });
+    // Flush the config response's .then chain before asserting.
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const a = analytics();
+    expect(a.initAnalytics).not.toHaveBeenCalled();
+    expect(a.captureSignupSource).not.toHaveBeenCalled();
+    // The gate itself was still published — as off.
+    expect(a.setAnalyticsEnabled).toHaveBeenCalledWith(false);
+  });
+
+  it("explicit opt-in plus a backend key initializes and stamps attribution", async () => {
+    const api = makeApi({
+      getConfig: vi.fn().mockResolvedValue({
+        posthog_key: "phc_remote",
+        posthog_host: "https://us.i.posthog.com",
+        analytics_environment: "production",
+      }),
+    });
+    renderInitializer({ api, analyticsEnabled: true });
+
+    await waitFor(() => {
+      expect(initAnalytics).toHaveBeenCalledWith({
+        key: "phc_remote",
+        host: "https://us.i.posthog.com",
+        appVersion: undefined,
+        environment: "production",
+      });
+    });
+    const a = analytics();
+    expect(a.setAnalyticsEnabled).toHaveBeenCalledWith(true);
+    expect(a.captureSignupSource).toHaveBeenCalledTimes(1);
+  });
+
+  it("opt-in against a keyless backend hard-offs and drops the attribution stamp", async () => {
+    const api = makeApi({
+      getConfig: vi.fn().mockResolvedValue({}),
+    });
+    renderInitializer({ api, analyticsEnabled: true });
+
+    await waitFor(() => {
+      expect(setAnalyticsEnabled).toHaveBeenCalledWith(false);
+    });
+    const a = analytics();
+    expect(a.initAnalytics).not.toHaveBeenCalled();
+    expect(a.captureSignupSource).not.toHaveBeenCalled();
+  });
+
+  it("waits for backend permission before enabling and identifies an already authenticated user", async () => {
+    let resolveConfig!: (value: { posthog_key: string }) => void;
+    const api = makeApi({
+      getConfig: vi.fn().mockReturnValue(new Promise((resolve) => {
+        resolveConfig = resolve;
+      })),
+    });
+    renderInitializer({ api, analyticsEnabled: true });
+
+    await waitFor(() => {
+      expect(useAuthStore.getState().status).toBe("authenticated");
+    });
+    expect(setAnalyticsEnabled).not.toHaveBeenCalledWith(true);
+    expect(initAnalytics).not.toHaveBeenCalled();
+    expect(captureSignupSource).not.toHaveBeenCalled();
+    vi.mocked(identify).mockClear();
+
+    await act(async () => resolveConfig({ posthog_key: "phc_remote" }));
+    expect(setAnalyticsEnabled).toHaveBeenLastCalledWith(true);
+    expect(initAnalytics).toHaveBeenCalled();
+    expect(identify).toHaveBeenCalledWith("user-1", {
+      email: "alice@example.com",
+      name: "Alice",
+    });
+  });
+
+  it("keeps analytics disabled when configuration cannot be loaded", async () => {
+    const api = makeApi({
+      getConfig: vi.fn().mockRejectedValue(new TypeError("offline")),
+    });
+    const { unmount } = renderInitializer({ api, analyticsEnabled: true });
+    await waitFor(() => {
+      expect(useAuthStore.getState().status).toBe("authenticated");
+    });
+    expect(setAnalyticsEnabled).not.toHaveBeenCalledWith(true);
+    expect(initAnalytics).not.toHaveBeenCalled();
+    expect(captureSignupSource).not.toHaveBeenCalled();
+    unmount();
+  });
+
+  it("keeps the identity merge flowing through the analytics module when opted in", async () => {
+    const api = makeApi({
+      getConfig: vi.fn().mockResolvedValue({ posthog_key: "phc_remote" }),
+    });
+    renderInitializer({ api, analyticsEnabled: true });
+
+    await waitFor(() => {
+      expect(useAuthStore.getState().status).toBe("authenticated");
+    });
+    expect(identify).toHaveBeenCalledWith("user-1", {
+      email: "alice@example.com",
+      name: "Alice",
+    });
   });
 });

@@ -146,16 +146,23 @@ backend:
     # every caller. Bootstrap the workspace with this false, then flip to
     # true so users can only join via invitation.
     disableWorkspaceCreation: false
-    # Set to "1" or "true" to disable first-party anonymous self-host
-    # telemetry collection and delivery.
-    doNotTrack: ""
+    # Telemetry is disabled by default. Explicit false opts into collection
+    # and delivery after restarting the backend.
+    doNotTrack: true
+    # PostHog additionally needs POSTHOG_API_KEY from existingSecret.
+    analyticsDisabled: true
+    # Deployment-wide billing and commercial limits are opt-in. Enabling
+    # workspace subscriptions additionally requires the child feature flag.
+    billingEnabled: false
+    billingWorkspaceSubscriptions: false
     # Self-host-only VCS integration (Forgejo / Gitea / GitLab). The official
     # chart enables the product surface by default; operators must also provide
     # MULTICA_VCS_SECRET_KEY through existingSecret before connections work.
     # Set false to hide and reject the integration for this deployment.
     vcsIntegrationEnabled: true
     # Managed multica-cloud connection. Empty keeps self-hosting independent.
-    # Fleet, Billing, entitlement policy and strict seat capacity share it.
+    # Fleet uses it independently. Billing, entitlement policy and strict
+    # seat capacity additionally require billingEnabled.
     cloud:
       url: ""
     googleClientId: ""

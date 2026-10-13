@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nProvider } from "@multica/core/i18n/react";
+import { configStore } from "@multica/core/config";
+import { BILLING_ENABLED_FLAG, BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG } from "@multica/core/feature-flags";
 import enBilling from "../locales/en/billing.json";
 
 const mockReplace = vi.hoisted(() => vi.fn());
@@ -77,6 +79,10 @@ function expectNoOutcomeClaim() {
 
 describe("BillingReturnPage", () => {
   beforeEach(() => {
+    configStore.getState().setFeatureFlags({
+      [BILLING_ENABLED_FLAG]: true,
+      [BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG]: true,
+    });
     authRef.current = { user: { id: "user-1" }, isLoading: false };
     workspacesRef.current = {
       data: [
@@ -232,6 +238,10 @@ describe("BillingReturnPage", () => {
 
 describe("BillingReturnPage outcome-neutral failure copy", () => {
   beforeEach(() => {
+    configStore.getState().setFeatureFlags({
+      [BILLING_ENABLED_FLAG]: true,
+      [BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG]: true,
+    });
     authRef.current = { user: { id: "user-1" }, isLoading: false };
     workspacesRef.current = {
       data: [{ id: "11111111-1111-1111-1111-111111111111", slug: "acme" }],
@@ -282,6 +292,10 @@ describe("BillingReturnPage outcome-neutral failure copy", () => {
 
 describe("BillingReturnPage login continuation", () => {
   beforeEach(() => {
+    configStore.getState().setFeatureFlags({
+      [BILLING_ENABLED_FLAG]: true,
+      [BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG]: true,
+    });
     authRef.current = { user: null, isLoading: false };
     workspacesRef.current = {
       data: undefined,
@@ -329,5 +343,47 @@ describe("BillingReturnPage login continuation", () => {
     expect(next).toBe("/billing/return");
     expect(next).not.toContain("javascript");
     expect(next).not.toContain("not-a-uuid");
+  });
+});
+
+describe("BillingReturnPage with billing disabled", () => {
+  beforeEach(() => {
+    configStore.getState().setFeatureFlags({});
+    authRef.current = { user: { id: "user-1" }, isLoading: false };
+    workspacesRef.current = {
+      data: [{ id: "11111111-1111-1111-1111-111111111111", slug: "acme" }],
+      isPending: false,
+      isError: false,
+      refetch: mockRefetchWorkspaces,
+    };
+  });
+
+  afterEach(() => {
+    mockReplace.mockReset();
+  });
+
+  it("does not redirect to subscriptions when only account billing is enabled", () => {
+    configStore.getState().setFeatureFlags({ [BILLING_ENABLED_FLAG]: true });
+    renderReturn("workspace_id=11111111-1111-1111-1111-111111111111&result=success");
+    expect(screen.getByRole("alert")).toHaveTextContent("Billing is unavailable");
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  // A disabled deployment must not claim a payment outcome.
+  it("answers a payment return with a neutral explanation and no navigation", async () => {
+    renderReturn(
+      "workspace_id=11111111-1111-1111-1111-111111111111&result=success&session_id=cs_test_1",
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Billing is unavailable",
+    );
+    expectNoOutcomeClaim();
+    // No redirect into billing settings, and no retry of anything.
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockRefetchWorkspaces).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Go to Multica" }));
+    expect(mockReplace).toHaveBeenCalledWith("/");
   });
 });

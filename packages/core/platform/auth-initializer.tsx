@@ -9,6 +9,7 @@ import {
   captureSignupSource,
   identify as identifyAnalytics,
   initAnalytics,
+  setAnalyticsEnabled,
 } from "../analytics";
 import { configStore } from "../config";
 import { workspaceListOptions } from "../workspace/queries";
@@ -34,6 +35,7 @@ export function AuthInitializer({
   onLogin,
   storage = defaultStorage,
   cookieAuth,
+  analyticsEnabled = false,
   identity,
 }: {
   children: ReactNode;
@@ -43,6 +45,8 @@ export function AuthInitializer({
   // callbacks live.
   storage?: StorageAdapter;
   cookieAuth?: boolean;
+  /** Host-app analytics opt-in (build-time env). Default: false. */
+  analyticsEnabled?: boolean;
   identity?: ClientIdentity;
 }) {
   const qc = useQueryClient();
@@ -106,13 +110,21 @@ export function AuthInitializer({
           .setCommentDeleteKeepRepliesSupported(
             cfg.comment_delete_keep_replies_supported === true,
           );
-        if (cfg.posthog_key) {
-          initAnalytics({
-            key: cfg.posthog_key,
-            host: cfg.posthog_host || "",
-            appVersion: identity?.version,
-            environment: cfg.analytics_environment,
-          });
+        // Do not collect or buffer until both the client and backend allow it.
+        const allowAnalytics = analyticsEnabled && Boolean(cfg.posthog_key);
+        setAnalyticsEnabled(allowAnalytics);
+        if (allowAnalytics && cfg.posthog_key && initAnalytics({
+          key: cfg.posthog_key,
+          host: cfg.posthog_host || "",
+          appVersion: identity?.version,
+          environment: cfg.analytics_environment,
+        })) {
+          captureSignupSource();
+          // Authentication can finish before configuration; identify only now.
+          const user = useAuthStore.getState().user;
+          if (user) {
+            identifyAnalytics(user.id, { email: user.email, name: user.name });
+          }
         }
         configLoadedRef.current = true;
         return true;
@@ -123,12 +135,10 @@ export function AuthInitializer({
       });
     configRequestRef.current = request;
     return request;
-  }, [identity?.version]);
+  }, [analyticsEnabled, identity?.version]);
 
   useEffect(() => {
-    // Stamp attribution before anything else — the signup event (server-side)
-    // reads this cookie, so it has to be present before the user hits submit.
-    captureSignupSource();
+    if (!configLoadedRef.current) setAnalyticsEnabled(false);
 
     // Configuration is optional for startup, but an offline boot must still
     // self-heal once connectivity returns. Keep retries rate-limited at the

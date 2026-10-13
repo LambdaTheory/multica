@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@multica/core/api";
 import { configStore } from "@multica/core/config";
-import { BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG } from "@multica/core/feature-flags";
+import {
+  BILLING_ENABLED_FLAG,
+  BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG,
+} from "@multica/core/feature-flags";
 import type {
   AutopilotQuotaUsage,
   IssueLimitUsage,
@@ -382,12 +385,27 @@ describe("BillingTab", () => {
       status: "submitted",
     });
     configStore.getState().setFeatureFlags({
+      [BILLING_ENABLED_FLAG]: true,
       [BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG]: true,
     });
   });
 
   it("renders nothing and issues no query when the feature flag is absent", () => {
     configStore.getState().setFeatureFlags({});
+
+    const { container } = renderWithI18n(<BillingTab />);
+
+    expect(container).toBeEmptyDOMElement();
+    expect(mocks.useQuery).not.toHaveBeenCalled();
+  });
+
+  // Regression: the deployment master switch is missing on servers that
+  // predate it. A subscription flag alone (e.g. an old backend or a stale
+  // cache) must keep the tab fail-closed.
+  it("renders nothing when the subscription flag is on but the master switch is missing", () => {
+    configStore.getState().setFeatureFlags({
+      [BILLING_WORKSPACE_SUBSCRIPTIONS_FLAG]: true,
+    });
 
     const { container } = renderWithI18n(<BillingTab />);
 

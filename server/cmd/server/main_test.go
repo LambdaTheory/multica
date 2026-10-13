@@ -342,6 +342,35 @@ func TestJWTSecretBootError(t *testing.T) {
 	}
 }
 
+// TestParseBillingEnabled pins the strict deployment switch: only an explicit
+// "true"/"1" (case-insensitive, trimmed) enables commercial billing; missing,
+// empty, and invalid values all stay disabled. A typo must never silently
+// open a billing surface.
+func TestParseBillingEnabled(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+		want bool
+	}{
+		{"missing_is_disabled", "", false},
+		{"whitespace_is_disabled", "   ", false},
+		{"explicit_true", "true", true},
+		{"explicit_true_case_insensitive", " True ", true},
+		{"explicit_one", "1", true},
+		{"explicit_zero_is_disabled", "0", false},
+		{"explicit_false_is_disabled", "false", false},
+		{"invalid_value_is_disabled", "ture", false},
+		{"yes_is_disabled", "yes", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := parseBillingEnabled(tt.raw); got != tt.want {
+				t.Errorf("parseBillingEnabled(%q) = %v, want %v", tt.raw, got, tt.want)
+			}
+		})
+	}
+}
+
 // TestNewMainHTTPServerTimeouts pins the production timeout defaults on the
 // public HTTP server. These are safety settings, not tuning: removing them,
 // resetting them to zero, or making ReadTimeout/WriteTimeout non-zero would

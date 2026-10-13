@@ -1,4 +1,4 @@
-import { githubUrl, discordUrl } from "../components/shared";
+import { githubUrl } from "../components/shared";
 import type { LandingDict } from "./types";
 
 export function createZhDict(
@@ -23,9 +23,8 @@ export function createZhDict(
     headlineLine2: "\u4e0d\u662f\u4eba\u7c7b\u3002",
     subheading:
       "Multica 是一个源码公开的平台，\u5c06\u7f16\u7801 智能体 \u53d8\u6210\u771f\u6b63\u7684\u961f\u53cb\u3002\u5206\u914d\u4efb\u52a1\u3001\u8ddf\u8e2a\u8fdb\u5ea6\u3001\u79ef\u7d2f\u6280\u80fd\u2014\u2014\u5728\u4e00\u4e2a\u5730\u65b9\u7ba1\u7406\u4f60\u7684\u4eba\u7c7b + 智能体 \u56e2\u961f\u3002",
-    cta: "免费开始",
+    cta: "\u5f00\u59cb\u4f7f\u7528",
     downloadDesktop: "下载桌面端",
-    talkToSales: "联系商务",
     worksWith: "支持 20+ 种 AI 编程工具",
     imageAlt: "Multica \u770b\u677f\u89c6\u56fe\u2014\u2014\u4eba\u7c7b\u548c 智能体 \u534f\u540c\u7ba1\u7406\u4efb\u52a1",
   },
@@ -163,7 +162,7 @@ export function createZhDict(
     headlineLine2: "都由你掌控。",
     description:
       "Multica 的源代码完全公开。审查每一行代码，免费自托管，塑造人类 + 智能体 协作的未来。把 Multica 作为托管服务提供给他人，需要商业授权。",
-    cta: "在 GitHub 上 Star",
+    cta: "在 GitHub 上查看",
     licensingCta: "了解授权方式 →",
     highlights: [
       {
@@ -252,8 +251,6 @@ export function createZhDict(
         links: [
           { label: "\u6587\u6863", href: docsHref },
           { label: "API", href: githubUrl },
-          { label: "X (Twitter)", href: "https://x.com/MulticaAI" },
-          { label: "Discord", href: discordUrl },
         ],
       },
       company: {
@@ -262,7 +259,6 @@ export function createZhDict(
           { label: "关于我们", href: "/about" },
           { label: "授权说明", href: "/licensing" },
           { label: "隐私政策", href: "/privacy" },
-          { label: "\u8054\u7cfb\u5546\u52a1", href: "/contact-sales" },
           { label: "GitHub", href: githubUrl },
         ],
       },
@@ -298,9 +294,7 @@ export function createZhDict(
         "Multica 的源代码公开，也可以自托管：在基于它构建之前，你可以读完每一行代码；自托管的部署完全运行在你自己的基础设施上。商业使用的规则，我们在[授权说明](/licensing)里写清楚了。",
       ],
       contacts: [
-        { label: "商业授权与合作", linkLabel: "联系商务", href: "/contact-sales" },
         { label: "授权规则", linkLabel: "授权说明", href: "/licensing" },
-        { label: "社区与支持", linkLabel: "Discord", href: discordUrl },
         { label: "源代码与问题反馈", linkLabel: "GitHub", href: githubUrl },
       ],
     },
@@ -373,12 +367,6 @@ export function createZhDict(
           "署名：如果你只基于 Multica 的后端、守护进程或 CLI 构建产品、不使用 Multica 界面，需要保留版权和 NOTICE 信息，并在面向用户的文档中注明产品基于 Multica 构建，附上 [GitHub 仓库](https://github.com/multica-ai/multica)链接。",
           "Fork：公开发布 fork 的源代码不算托管服务，不需要商业授权。但任何用这个 fork 运营托管服务的人，都需要各自获得商业授权。",
           "商业授权和品牌豁免是两项独立的授权，获得其中一项不代表获得另一项。",
-        ],
-      },
-      {
-        heading: "获取商业授权",
-        paragraphs: [
-          "通过[联系商务](/contact-sales)告诉我们你的使用场景，我们会在三个工作日内回复。不确定自己的情况是否需要授权？可以在 [Discord](" + discordUrl + ") 上问我们，也可以通过同一个表单咨询。",
         ],
       },
     ],
@@ -3935,123 +3923,11 @@ export function createZhDict(
       copyLabel: "复制",
       copiedLabel: "已复制",
     },
-    cloud: {
-      title: "Cloud runtime（等待名单）",
-      sub: "我们将为你托管 runtime，目前尚未上线——留下邮箱，上线后通知你。",
-    },
     footer: {
       releaseNotes: "v{version} 更新内容",
       allReleases: "查看所有版本",
       currentVersion: "当前版本：{version}",
       versionUnavailable: "版本获取失败——请前往 GitHub 查看",
-    },
-  },
-  contactSales: {
-    pageTitle: "联系商务",
-    pageDescription:
-      "了解如何在你的团队中落地 Multica 的人类 + 智能体协作工作流。",
-    eyebrow: "联系商务",
-    title: "先了解你的需求",
-    fields: {
-      firstName: "名",
-      lastName: "姓",
-      businessEmail: "企业邮箱",
-      businessEmailHint:
-        "请使用公司邮箱，不接受 Gmail、Outlook 等个人邮箱。",
-      companyName: "公司名称",
-      companySize: "公司规模",
-      countryRegion: "国家 / 地区",
-      useCase: "你打算如何使用 Multica 或与我们合作？",
-      goals: "你的目标或挑战",
-      selectPlaceholder: "请选择",
-      submit: "提交",
-      submitting: "正在提交…",
-    },
-    companySizes: [
-      { value: "1-10", label: "1 – 10 人" },
-      { value: "11-50", label: "11 – 50 人" },
-      { value: "51-200", label: "51 – 200 人" },
-      { value: "201-500", label: "201 – 500 人" },
-      { value: "501-1000", label: "501 – 1,000 人" },
-      { value: "1000+", label: "1,000 人以上" },
-    ],
-    useCases: [
-      { value: "evaluate", label: "正在为团队评估 Multica" },
-      { value: "adopt_team", label: "希望在团队 / 公司内推广使用" },
-      { value: "self_host", label: "需要在自有基础设施上自托管" },
-      { value: "integrate", label: "希望与现有工具集成" },
-      { value: "partner", label: "合作 / 渠道合作咨询" },
-      { value: "other", label: "其他" },
-    ],
-    countries: [
-      "中国大陆",
-      "中国香港",
-      "中国澳门",
-      "中国台湾",
-      "新加坡",
-      "马来西亚",
-      "印度尼西亚",
-      "泰国",
-      "越南",
-      "菲律宾",
-      "日本",
-      "韩国",
-      "印度",
-      "阿联酋",
-      "沙特阿拉伯",
-      "以色列",
-      "土耳其",
-      "美国",
-      "加拿大",
-      "英国",
-      "德国",
-      "法国",
-      "荷兰",
-      "瑞典",
-      "瑞士",
-      "西班牙",
-      "意大利",
-      "爱尔兰",
-      "挪威",
-      "丹麦",
-      "芬兰",
-      "比利时",
-      "葡萄牙",
-      "澳大利亚",
-      "新西兰",
-      "南非",
-      "巴西",
-      "墨西哥",
-      "阿根廷",
-      "智利",
-      "其他",
-    ],
-    consent: {
-      intro:
-        "Multica 尊重你的隐私。我们仅会将你的个人信息用于管理账户，以及提供你所请求的产品或服务。我们偶尔也希望与你分享产品更新、最佳实践或行业洞察，如果你愿意接收，请在下方勾选。",
-      outreach:
-        "我希望接收来自 Multica 的一对一沟通，包括服务更新、支持咨询以及业务相关的跟进。",
-      updates:
-        "我希望接收 Multica 的产品更新、洞察以及活动邀请。",
-      unsubscribe:
-        "你可以随时取消订阅我们的邮件。关于我们如何处理你的数据以及隐私权利，请参阅",
-      submitConsent:
-        "点击「提交」即表示你同意 Multica 存储并处理你提交的信息，以便交付你请求的内容。",
-      privacyLinkLabel: "隐私政策。",
-      privacyLinkHref: "/privacy",
-    },
-    success: {
-      title: "已收到，谢谢！",
-      message:
-        "Multica 团队会在三个工作日内回复你。在此期间，欢迎查看我们的文档，或在 GitHub 上为我们点个 Star。",
-      cta: "返回首页",
-    },
-    errors: {
-      generic: "提交失败，请稍后再试。",
-      rateLimit: "该邮箱近期已提交多次，请稍后再试。",
-      freeEmail:
-        "请使用企业邮箱——免费邮箱（gmail、outlook 等）暂不接受。",
-      invalidEmail: "邮箱地址格式不正确。",
     },
   },
   };

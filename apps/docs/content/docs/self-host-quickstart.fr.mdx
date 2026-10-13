@@ -7,14 +7,16 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 L'auto-hébergement de Multica comporte deux parties :
 
+> **Images du fork :** les images publiées en amont ne contiennent pas les modifications de ce fork. Construisez le backend et le frontend depuis cette copie avec `make selfhost-build`.
+
 | Partie | Ce qu'elle exécute | Où elle se trouve |
 |---|---|---|
 | **Service Multica** | Web, API et PostgreSQL | Une machine sur laquelle Docker est installé |
 | **Ordinateur** | Le daemon Multica et les outils de codage IA | L'ordinateur sur lequel les développeurs travaillent réellement |
 
-Il peut s'agir de la même machine ou de machines distinctes. L'auto-hébergement ne remplace que la partie Multica Cloud.
+Les deux parties peuvent se trouver sur la même machine ou sur des machines distinctes ; choisissez selon votre environnement de déploiement.
 
-Ce guide utilise Docker Compose. Pour un déploiement sur Kubernetes, consultez le [guide d'auto-hébergement](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative) dans le dépôt.
+Ce guide utilise Docker Compose. Pour un déploiement sur Kubernetes, consultez le [guide d'auto-hébergement](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative) dans le dépôt.
 
 ## Avant de commencer
 
@@ -40,30 +42,23 @@ L'ordinateur doit également disposer d'au moins un [outil de codage IA](/provid
 Sur la machine qui fera tourner le service :
 
 ```bash
-git clone --depth 1 https://github.com/multica-ai/multica.git
+git clone --depth 1 https://github.com/LambdaTheory/multica.git
 cd multica
-make selfhost
+make selfhost-build
 ```
 
-Au premier lancement, `make selfhost` :
+Au premier lancement, `make selfhost-build` :
 
 1. Crée `.env` à partir de `.env.example`
 2. Génère un `JWT_SECRET` aléatoire, un mot de passe PostgreSQL et une `MULTICA_VCS_SECRET_KEY` (la clé de chiffrement des intégrations Git auto-hébergées)
-3. Télécharge les images PostgreSQL, backend Multica et frontend Multica
+3. Télécharge l'image PostgreSQL et construit les images backend et frontend Multica depuis cette copie
 4. Crée des volumes persistants et démarre les trois conteneurs
 5. Attend que le backend commence à répondre aux vérifications d'état
 
-Relancer `make selfhost` réutilise le `.env` et les volumes existants ; les secrets ne sont pas régénérés.
+Relancer `make selfhost-build` réutilise le `.env` et les volumes existants ; les secrets ne sont pas régénérés.
 
 <Callout type="info">
-`make selfhost` télécharge les images publiées et ne compile pas le code de votre copie locale. Pour tester le code source local, utilisez `make selfhost-build`.
-
-Les images publiées suivent le **tag de version** le plus récent, alors qu'un simple `git clone` récupère `main`, qui a généralement de l'avance. Si vous compilez quoi que ce soit à partir de cette copie locale — le CLI, ou des images via `make selfhost-build` — basculez d'abord sur le tag de version correspondant, afin que les binaires compilés et les conteneurs en cours d'exécution restent sur la même version :
-
-```bash
-git fetch --tags --depth 1
-git checkout $(git tag -l 'v*' --sort=-v:refname | head -1)
-```
+`make selfhost-build` construit les images depuis le code de ce fork. Les images upstream publiées ne contiennent pas les modifications de ce fork.
 </Callout>
 
 ## 2. Vérifier que les services sont prêts
@@ -367,7 +362,7 @@ Toute réponse autre qu'un HTTP 200 avec les deux vérifications à `ok` signifi
 
 Helm a son propre chemin de mise à niveau : définissez `images.backend.tag` / `images.frontend.tag` sur la version souhaitée dans votre fichier de valeurs, puis lancez `helm upgrade`. Changer le tag modifie la spécification du pod : Kubernetes télécharge donc la nouvelle image et redéploie progressivement les Deployments — c'est la méthode fiable.
 
-`kubectl -n multica rollout restart` n'est **pas** une mise à niveau en soi. Le chart est livré avec `pullPolicy: IfNotPresent` (`deploy/helm/multica/values.yaml`) : un nœud qui a déjà ce tag en cache réutilise donc l'ancienne image, et le redémarrage ne change silencieusement rien — le même type de piège qu'un `MULTICA_IMAGE_TAG` figé. Si vous voulez suivre un tag flottant de cette manière, définissez d'abord `images.backend.pullPolicy` / `images.frontend.pullPolicy` sur `Always`. Consultez le [guide d'auto-hébergement](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative).
+`kubectl -n multica rollout restart` n'est **pas** une mise à niveau en soi. Le chart est livré avec `pullPolicy: IfNotPresent` (`deploy/helm/multica/values.yaml`) : un nœud qui a déjà ce tag en cache réutilise donc l'ancienne image, et le redémarrage ne change silencieusement rien — le même type de piège qu'un `MULTICA_IMAGE_TAG` figé. Si vous voulez suivre un tag flottant de cette manière, définissez d'abord `images.backend.pullPolicy` / `images.frontend.pullPolicy` sur `Always`. Consultez le [guide d'auto-hébergement](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative).
 
 <Callout type="warning">
 `docker compose down` conserve `pgdata` et `backend_uploads`. Ajouter `-v` supprime ces volumes, base de données comprise ; n'exécutez pas `docker compose down -v`, sauf si vous avez l'intention d'effacer l'instance.
@@ -389,5 +384,5 @@ Pour d'autres scénarios, consultez [Dépannage](/troubleshooting).
 
 - [Configuration de l'authentification](/auth-setup) — configurer l'e-mail, la connexion Google et le périmètre d'inscription.
 - [Variables d'environnement](/environment-variables) — la référence complète de configuration du serveur.
-- [Guide d'auto-hébergement](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md) — Kubernetes, mises à niveau et déploiement manuel.
+- [Guide d'auto-hébergement](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md) — Kubernetes, mises à niveau et déploiement manuel.
 - [Application de bureau](/desktop-app) — connecter l'application de bureau à un service auto-hébergé.

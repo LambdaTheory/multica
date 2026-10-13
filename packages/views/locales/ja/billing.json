@@ -251,6 +251,8 @@
     "load_failed_description": "Stripe から戻りましたが、ワークスペース一覧を読み込めず該当の請求ページを開けませんでした。「ワークスペース設定 → 請求」で現在の状態を確認してください。",
     "workspace_missing_title": "ワークスペースが見つかりません",
     "workspace_missing_description": "Stripe から戻りましたが、このワークスペースは利用できません。削除されたか、アクセス権が変更された可能性があります。対象のワークスペースの請求ページで現在の状態を確認してください。",
+    "billing_disabled_title": "課金機能は無効です",
+    "billing_disabled_description": "このデプロイでは課金が無効のため、この決済リダイレクトページで確認や処理は行われません。ページを閉じてアプリの利用を続けてください。",
     "retry": "再試行",
     "go_to_app": "Multica を開く"
   }

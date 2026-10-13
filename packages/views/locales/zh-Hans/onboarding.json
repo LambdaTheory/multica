@@ -122,19 +122,6 @@
     "platform_windows": "Windows",
     "step2_label": "启动守护进程"
   },
-  "cloud_waitlist": {
-    "intro_main": "云运行时尚未上线。留下邮箱，上线时通过邮件通知你。",
-    "intro_warning": "提示：未配置运行时，智能体就无法工作——如果现在跳过，在你回来安装之前不会启动任何运行。",
-    "email_label": "邮箱",
-    "email_placeholder": "you@work.com",
-    "reason_label": "为什么选择云？",
-    "optional": "选填",
-    "reason_placeholder": "例如：希望智能体 24/7 运行，或团队在不同设备协作。",
-    "join": "加入候补名单",
-    "on_list": "已在候补名单",
-    "success_toast": "已加入候补名单。云运行时上线时会通过邮件通知你。",
-    "failed_toast": "加入候补名单失败"
-  },
   "welcome_after_onboarding": {
     "skip": {
       "loading": "正在为你准备工作区...",
@@ -211,9 +198,6 @@
     "empty_skip_title": "暂时跳过",
     "empty_skip_subtitle": "连接运行时前，智能体无法运行。",
     "empty_skip_action": "跳过",
-    "empty_waitlist_title": "使用云电脑",
-    "empty_waitlist_subtitle": "我们会在云上为你运行一台电脑。尚未上线。",
-    "empty_waitlist_action": "即将推出",
     "skip": "暂时跳过",
     "refresh": "刷新",
     "refreshing": "正在刷新...",
@@ -233,9 +217,6 @@
     "cli_title": "通过终端连接",
     "cli_subtitle": "连接一台服务器、远程开发机或任意无头电脑。需要终端。",
     "cli_action": "查看步骤",
-    "cloud_title": "使用云电脑",
-    "cloud_subtitle": "我们会在云上为你运行一台电脑。尚未上线。",
-    "cloud_action": "即将推出",
     "cli_dialog_title": "通过终端连接",
     "cli_dialog_pick_hint": "在上方选一台电脑。",
     "cli_dialog_connect": "连接并继续",

@@ -1,4 +1,4 @@
-import { githubUrl, discordUrl } from "../components/shared";
+import { githubUrl } from "../components/shared";
 import { createEnDict } from "./en";
 import type { LandingDict } from "./types";
 
@@ -26,9 +26,8 @@ export function createJaDict(
       headlineLine2: "人間ではないかもしれません。",
       subheading:
         "Multica は、コーディングエージェントを本物のチームメンバーに変える、ソースコード公開型のプラットフォームです。タスクを割り当て、進捗を追い、ノウハウをスキルとして積み上げる。人間と AI エージェントから成るチームを、ひとつの場所で管理できます。",
-      cta: "無料トライアルを始める",
+      cta: "始める",
       downloadDesktop: "デスクトップ版をダウンロード",
-      talkToSales: "営業に相談する",
       worksWith: "20+ の AI コーディングツールに対応",
       imageAlt: "人間と AI エージェントがタスクを管理する Multica のボード画面",
     },
@@ -165,7 +164,7 @@ export function createJaDict(
       headlineLine2: "あなたの手に。",
       description:
         "Multica のソースコードは公開されています。すべてのコードを確認し、無料でセルフホストし、人間と AI エージェントが協働する未来を、ともに形づくっていけます。Multica をホスティングサービスとして他者に提供する場合は、商用ライセンスが必要です。",
-      cta: "GitHub でスターを付ける",
+      cta: "GitHub で見る",
       licensingCta: "ライセンスについて →",
       highlights: [
         {
@@ -252,8 +251,6 @@ export function createJaDict(
           links: [
             { label: "ドキュメント", href: docsHref },
             { label: "API", href: githubUrl },
-            { label: "X (Twitter)", href: "https://x.com/MulticaAI" },
-            { label: "Discord", href: discordUrl },
           ],
         },
         company: {
@@ -262,7 +259,6 @@ export function createJaDict(
             { label: "概要", href: "/about" },
             { label: "ライセンス", href: "/licensing" },
             { label: "プライバシー", href: "/privacy" },
-            { label: "営業に相談", href: "/contact-sales" },
             { label: "GitHub", href: githubUrl },
           ],
         },
@@ -3178,9 +3174,7 @@ export function createJaDict(
           "ソースコードは公開されていてセルフホストもできるので、Multica の上に何かを築く前に、すべてのコードを確認できます。セルフホストした環境は、すべてあなた自身のインフラ上で動きます。商用利用のルールは[ライセンスについて](/licensing)のページで説明しています。",
         ],
         contacts: [
-          { label: "商用ライセンス・営業", linkLabel: "営業に相談", href: "/contact-sales" },
           { label: "ライセンスの考え方", linkLabel: "ライセンス FAQ", href: "/licensing" },
-          { label: "コミュニティ・サポート", linkLabel: "Discord", href: discordUrl },
           { label: "ソースコード・Issue", linkLabel: "GitHub", href: githubUrl },
         ],
       },
@@ -3252,12 +3246,6 @@ export function createJaDict(
             "帰属表示: Multica のインターフェースを使わずに、バックエンド、デーモン、CLI の上に製品を構築する場合は、著作権表示と NOTICE の内容を残し、ユーザー向けドキュメントに Multica をベースにしていることを [GitHub リポジトリ](https://github.com/multica-ai/multica)へのリンクとともに明記してください。",
             "フォーク: フォークのソースコードを公開すること自体はホスティングサービスではなく、商用ライセンスは不要です。ただし、そのフォークでホスティングサービスを運営する人は、それぞれ商用ライセンスが必要です。",
             "商用ライセンスとブランド表示の免除は別々の許諾です。一方を得ても、もう一方は含まれません。",
-          ],
-        },
-        {
-          heading: "商用ライセンスの取得",
-          paragraphs: [
-            "[営業に相談](/contact-sales)からユースケースをお知らせください。3営業日以内にご連絡します。ライセンスが必要かどうかわからない場合は、[Discord](" + discordUrl + ") または同じフォームからお気軽にお尋ねください。",
           ],
         },
       ],
@@ -3439,123 +3427,11 @@ export function createJaDict(
         copyLabel: "コピー",
         copiedLabel: "コピーしました",
       },
-      cloud: {
-        title: "クラウドランタイム(順番待ち)",
-        sub: "ランタイムを当社がホストします。まだ提供前です。メールアドレスをお預けいただければ、準備でき次第お知らせします。",
-      },
       footer: {
         releaseNotes: "{version} の新着情報",
         allReleases: "すべてのリリースを見る",
         currentVersion: "現在のバージョン: {version}",
         versionUnavailable: "バージョンを確認できません。GitHub をご確認ください。",
-      },
-    },
-    contactSales: {
-      pageTitle: "営業に相談",
-      pageDescription:
-        "人間と AI エージェントが協働するワークフローを社内に導入する方法について、Multica チームにご相談ください。",
-      eyebrow: "営業に相談",
-      title: "まずは、ご要望をお聞かせください",
-      fields: {
-        firstName: "名",
-        lastName: "姓",
-        businessEmail: "ビジネスメール",
-        businessEmailHint:
-          "会社のメールアドレスを使用してください。Gmail、Outlook などの個人用メールは受け付けていません。",
-        companyName: "会社名",
-        companySize: "会社規模",
-        countryRegion: "国 / 地域",
-        useCase: "Multica をどのように利用、または活用するご予定ですか?",
-        goals: "目標または現在抱えている課題",
-        selectPlaceholder: "選択してください",
-        submit: "送信",
-        submitting: "送信中...",
-      },
-      companySizes: [
-        { value: "1-10", label: "従業員 1〜10名" },
-        { value: "11-50", label: "従業員 11〜50名" },
-        { value: "51-200", label: "従業員 51〜200名" },
-        { value: "201-500", label: "従業員 201〜500名" },
-        { value: "501-1000", label: "従業員 501〜1,000名" },
-        { value: "1000+", label: "従業員 1,000名以上" },
-      ],
-      useCases: [
-        { value: "evaluate", label: "チームでの導入を検討中" },
-        { value: "adopt_team", label: "チームまたは会社に Multica を導入" },
-        { value: "self_host", label: "自社インフラにセルフホスト" },
-        { value: "integrate", label: "既存ツールと Multica を連携" },
-        { value: "partner", label: "パートナーシップまたはリセラーのお問い合わせ" },
-        { value: "other", label: "その他" },
-      ],
-      countries: [
-        "アメリカ合衆国",
-        "カナダ",
-        "イギリス",
-        "ドイツ",
-        "フランス",
-        "オランダ",
-        "スウェーデン",
-        "スイス",
-        "スペイン",
-        "イタリア",
-        "アイルランド",
-        "ノルウェー",
-        "デンマーク",
-        "フィンランド",
-        "ベルギー",
-        "ポルトガル",
-        "オーストラリア",
-        "ニュージーランド",
-        "日本",
-        "韓国",
-        "シンガポール",
-        "香港特別行政区",
-        "台湾",
-        "中国本土",
-        "インド",
-        "インドネシア",
-        "タイ",
-        "ベトナム",
-        "フィリピン",
-        "マレーシア",
-        "アラブ首長国連邦",
-        "サウジアラビア",
-        "イスラエル",
-        "トルコ",
-        "南アフリカ",
-        "ブラジル",
-        "メキシコ",
-        "アルゼンチン",
-        "チリ",
-        "その他",
-      ],
-      consent: {
-        intro:
-          "Multica はあなたのプライバシーを尊重します。お預かりした個人情報は、アカウントの管理と、ご依頼いただいた製品・サービスの提供のためにのみ使用します。ときどき、製品アップデートやベストプラクティス、ご参考になりそうなインサイトもお届けできればと思います。ご希望の場合は、下でお知らせください。",
-        outreach:
-          "サービスのアップデート、サポートへのお問い合わせ、ビジネス関連のフォローアップなど、Multica からの個別のご連絡を受け取ります。",
-        updates:
-          "Multica からの製品アップデート、インサイト、イベントへのご招待を受け取ります。",
-        unsubscribe:
-          "配信はいつでも停止できます。データの取り扱いとプライバシーの権利について詳しくは、こちらをご確認ください:",
-        submitConsent:
-          "「送信」をクリックすると、ご依頼いただいたコンテンツをお届けするために、Multica が情報を保存・処理することに同意したことになります。",
-        privacyLinkLabel: "プライバシーポリシー。",
-        privacyLinkHref: "/privacy",
-      },
-      success: {
-        title: "ありがとうございます。確かに受け取りました。",
-        message:
-          "Multica チームのメンバーが、3営業日以内にご返信いたします。それまでの間、ドキュメントを覗いてみたり、GitHub でスターを付けたりしてお待ちください。",
-        cta: "ホームに戻る",
-      },
-      errors: {
-        generic: "問題が発生しました。少し時間をおいて、もう一度お試しください。",
-        rateLimit:
-          "最近このアドレスから、いくつかのお問い合わせを受け取っています。しばらくしてから、もう一度お試しください。",
-        freeEmail:
-          "ビジネスメールアドレスをご利用ください。無料のメールサービス(gmail、outlook など)はご利用いただけません。",
-        invalidEmail: "有効なメールアドレスではないようです。",
       },
     },
   };

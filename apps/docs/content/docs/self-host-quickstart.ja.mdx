@@ -7,14 +7,15 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 Multica のセルフホストは 2 つの部分に分かれます。
 
+> **Fork イメージ：**公開されている upstream イメージにはこの fork の変更は含まれません。この checkout から `make selfhost-build` を実行して backend と frontend をビルドしてください。
 | 構成要素 | 実行するもの | 置く場所 |
 |---|---|---|
 | **Multica サービス** | Web、API、PostgreSQL | Docker をインストールした 1 台のマシン |
 | **実行用コンピュータ** | Multica デーモンと AI コーディングツール | 開発者が実際に作業するコンピュータ |
 
-両者は同じマシンでも、別々のマシンでも構いません。セルフホストで置き換えるのは Multica Cloud の部分だけです。
+同じマシンにまとめても、別々のマシンに分けても構いません。デプロイ環境に合わせて選択してください。
 
-このページでは Docker Compose を使います。Kubernetes でのデプロイは、リポジトリの [Self-hosting guide](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative) を参照してください。
+このページでは Docker Compose を使います。Kubernetes でのデプロイは、リポジトリの [Self-hosting guide](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative) を参照してください。
 
 ## 始める前に
 
@@ -40,30 +41,23 @@ Multica は Compose v2（`docker compose`）を使います。旧版の `docker-
 サービスを実行するマシンで次を実行します。
 
 ```bash
-git clone --depth 1 https://github.com/multica-ai/multica.git
+git clone --depth 1 https://github.com/LambdaTheory/multica.git
 cd multica
-make selfhost
+make selfhost-build
 ```
 
-初回実行時、`make selfhost` は次を行います。
+初回実行時、`make selfhost-build` は次を行います。
 
 1. `.env.example` から `.env` を作成する
 2. `JWT_SECRET`、PostgreSQL パスワード、`MULTICA_VCS_SECRET_KEY`（セルフホストの Git 連携用の暗号化キー）をランダム生成する
-3. PostgreSQL、Multica backend、Multica frontend のイメージを取得する
+3. PostgreSQL イメージを取得し、Multica backend と frontend のイメージを checkout からビルドする
 4. 永続化ボリュームを作成し、3 つのコンテナを起動する
 5. backend がヘルスチェックに応答し始めるまで待機する
 
-2 回目以降の `make selfhost` は既存の `.env` とボリュームをそのまま使い、シークレットを再生成しません。
+2 回目以降の `make selfhost-build` は既存の `.env` とボリュームをそのまま使い、シークレットを再生成しません。
 
 <Callout type="info">
-`make selfhost` は公開済みのイメージを取得し、checkout 中のコードをビルドしません。ローカルのソースを試すには `make selfhost-build` を使ってください。
-
-公開済みのイメージは最新の **release タグ** を追跡しますが、単なる `git clone` でチェックアウトされるのは `main` で、通常リリースより先行しています。この checkout から何かをビルドする場合（CLI、または `make selfhost-build` によるイメージ）は、先に対応する release タグへ切り替えて、ビルドしたバイナリと稼働中のコンテナのバージョンを揃えてください:
-
-```bash
-git fetch --tags --depth 1
-git checkout $(git tag -l 'v*' --sort=-v:refname | head -1)
-```
+`make selfhost-build` はこの fork のコードからイメージをビルドします。公開されている upstream イメージはこの fork の変更を含みません。
 </Callout>
 
 ## 2. サービスの準備完了を確認する
@@ -366,7 +360,7 @@ HTTP 200 かつ両方のチェックが `ok` でない場合、新しいバー�
 
 Helm には独自のアップグレード経路があります。values ファイルで `images.backend.tag` / `images.frontend.tag` に目的のリリースを設定し、`helm upgrade` を実行してください。タグを変えると Pod スペックが変わるため、Kubernetes が新しいイメージを取得して Deployment をロールします — これが確実な経路です。
 
-`kubectl -n multica rollout restart` はそれ単体ではアップグレードになりません。チャートは `pullPolicy: IfNotPresent` を同梱しているため（`deploy/helm/multica/values.yaml`）、そのタグをすでにキャッシュしているノードでは古いイメージが再利用され、restart しても何も変わりません — `MULTICA_IMAGE_TAG` の固定と同種の落とし穴です。浮動タグでこの方法を使いたい場合は、先に `images.backend.pullPolicy` / `images.frontend.pullPolicy` を `Always` に設定してください。リポジトリの [Self-hosting guide](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative) を参照してください。
+`kubectl -n multica rollout restart` はそれ単体ではアップグレードになりません。チャートは `pullPolicy: IfNotPresent` を同梱しているため（`deploy/helm/multica/values.yaml`）、そのタグをすでにキャッシュしているノードでは古いイメージが再利用され、restart しても何も変わりません — `MULTICA_IMAGE_TAG` の固定と同種の落とし穴です。浮動タグでこの方法を使いたい場合は、先に `images.backend.pullPolicy` / `images.frontend.pullPolicy` を `Always` に設定してください。リポジトリの [Self-hosting guide](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md#kubernetes-deployment-alternative) を参照してください。
 
 <Callout type="warning">
 `docker compose down` は `pgdata` と `backend_uploads` を保持します。`-v` を付けると、データベースを含むこれらのボリュームが削除されます。インスタンスを消去するつもりがない限り、`docker compose down -v` を実行しないでください。
@@ -388,5 +382,5 @@ Helm には独自のアップグレード経路があります。values ファ�
 
 - [ログインとサインアップ設定](/auth-setup) — メール、Google ログイン、サインアップ範囲を設定する。
 - [環境変数](/environment-variables) — サーバー設定の完全なリファレンス。
-- [Self-hosting guide](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING.md) — Kubernetes、アップグレード、手動デプロイ。
+- [Self-hosting guide](https://github.com/LambdaTheory/multica/blob/main/SELF_HOSTING.md) — Kubernetes、アップグレード、手動デプロイ。
 - [デスクトップアプリ](/desktop-app) — デスクトップアプリをセルフホストのサービスに接続する。

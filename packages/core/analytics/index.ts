@@ -11,6 +11,12 @@
 // from POSTHOG_API_KEY on the server), NOT from NEXT_PUBLIC_* envs. That
 // keeps self-hosted Docker images from leaking our project key — their
 // backend returns an empty key and this module stays inert.
+//
+// A backend key is necessary but not sufficient: the module additionally
+// requires an explicit client opt-in (`setAnalyticsEnabled(true)`, decided by
+// the host app from its build-time env). Default is OFF — with no opt-in the
+// SDK is never initialized, nothing is buffered, and no attribution cookie
+// is written, even against a backend that advertises a valid key.
 
 import posthog from "posthog-js";
 import { redactExceptionProperties } from "./redact-exception";
@@ -34,6 +40,15 @@ const UTM_KEYS = [
 ] as const;
 
 let initialized = false;
+/**
+ * Client opt-in gate, controlled exclusively by the host app (web reads
+ * NEXT_PUBLIC_ANALYTICS_ENABLED, desktop reads VITE_ANALYTICS_ENABLED — this
+ * module never touches env vars or storage). Default OFF: every entry point
+ * below is a hard no-op, nothing is buffered, and no attribution cookie is
+ * written, even when the connected backend advertises a valid PostHog key.
+ * A backend key alone can never turn analytics on.
+ */
+let enabled = false;
 // auth-initializer fetches /api/config and /api/me in parallel — on a
 // slow-config path, identify() can fire before initAnalytics(). Buffer the
 // most recent pending identify (only one matters, since it's per-session)
@@ -97,16 +112,33 @@ export function detectClientType(): ClientType {
   return "web";
 }
 
+/** Apply the combined client/backend permission and discard pending data when disabled. */
+export function setAnalyticsEnabled(next: boolean): void {
+  enabled = next;
+  if (!next) {
+    pendingIdentify = null;
+    pendingOps.length = 0;
+    // Stops collection AND flips posthog-js's persisted opt-out flag — this
+    // is a real teardown, not an identity reset.
+    if (initialized) posthog.opt_out_capturing();
+    return;
+  }
+  // Reverses the persisted opt-out. captureEventName: null keeps the
+  // re-enable itself silent — no synthetic $opt_in event.
+  if (initialized) posthog.opt_in_capturing({ captureEventName: null });
+}
+
 /**
- * Initialize posthog-js if a key is present. Safe to call multiple times;
- * subsequent calls with the same config are no-ops.
+ * Initialize posthog-js if the client opted in AND a key is present. Safe to
+ * call multiple times; subsequent calls with the same config are no-ops.
  *
  * Returns `true` when analytics is actually running; `false` when disabled
- * (no key, SSR, or already initialized with a conflicting key — which we
- * treat as "use the existing instance").
+ * (no client opt-in, no key, SSR, or already initialized with a conflicting
+ * key — which we treat as "use the existing instance").
  */
 export function initAnalytics(config: AnalyticsConfig | null | undefined): boolean {
   if (typeof window === "undefined") return false;
+  if (!enabled) return false;
   if (!config?.key) return false;
   if (initialized) return true;
 
@@ -212,6 +244,9 @@ export function initAnalytics(config: AnalyticsConfig | null | undefined): boole
  */
 export function identify(userId: string, userProperties?: Record<string, unknown>): void {
   currentUserId = userId;
+  // Default-off: no opt-in means no buffering either — a later enable must
+  // not resurrect events nobody agreed to send.
+  if (!enabled) return;
   if (!initialized) {
     pendingIdentify = { userId, props: userProperties };
     return;
@@ -276,6 +311,7 @@ export function captureEvent(
   props?: Record<string, unknown>,
   options?: CaptureEventOptions,
 ): void {
+  if (!enabled) return;
   if (!initialized) {
     pendingOps.push({ kind: "event", name, props, options });
     return;
@@ -314,6 +350,7 @@ export function captureException(
   error: unknown,
   props?: Record<string, unknown>,
 ): void {
+  if (!enabled) return;
   if (!initialized) {
     pendingOps.push({ kind: "exception", error, props });
     return;
@@ -330,6 +367,7 @@ export function captureException(
  * attribution fields that must never be overwritten.
  */
 export function setPersonProperties(props: Record<string, unknown>): void {
+  if (!enabled) return;
   if (!initialized) {
     pendingOps.push({ kind: "set", props });
     return;
@@ -396,6 +434,11 @@ function normalizeEnvironment(value: string | undefined): string {
  * without a backend deploy.
  */
 export function captureSignupSource(): void {
+  // Attribution feeds the analytics funnel, so it follows the same opt-in
+  // gate — no cookie is written unless the host app enabled analytics. The
+  // caller additionally waits for a backend-advertised key before invoking
+  // this, so "effective allow" is opt-in AND backend permission.
+  if (!enabled) return;
   if (typeof window === "undefined" || typeof document === "undefined") return;
   if (readCookie(SIGNUP_SOURCE_COOKIE)) return;
 
